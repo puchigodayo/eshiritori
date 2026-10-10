@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no,interactive-widget=overlays-content">
 <meta name="theme-color" content="#5b3df5">
 <title>えしりとり</title>
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
@@ -29,7 +29,7 @@ h1,h2,p{margin:0}.dim{opacity:.85;text-align:center}.msg{text-align:center;min-h
 .av{border-radius:50%;background-size:cover;background-position:center;display:grid;place-items:center;color:#fff;font-weight:800;flex:none;border:3px solid rgba(255,255,255,.85);box-shadow:0 4px 14px rgba(40,10,90,.3)}
 .av.md{width:48px;height:48px;font-size:22px}.av.lg{width:clamp(64px,9vw,120px);height:clamp(64px,9vw,120px);font-size:clamp(28px,4vw,52px)}.av.xl{width:140px;height:140px;font-size:64px;cursor:pointer;align-self:center}
 /* menu */
-#menu.on{display:grid;grid-template-columns:1fr;grid-auto-rows:min-content;overflow:auto}
+#menu.on{display:grid;grid-template-columns:1fr;grid-template-rows:auto 1fr;overflow:auto}
 #menu .hero{text-align:center}#menu h1{font-size:44px;letter-spacing:.04em;text-shadow:0 4px 24px rgba(60,20,120,.4)}
 .side{display:flex;flex-direction:column;gap:12px}.side .card{flex:1}
 .code{font-size:44px;font-weight:800;letter-spacing:.14em;font-variant-numeric:tabular-nums;user-select:text;-webkit-user-select:text}
@@ -73,6 +73,15 @@ h1,h2,p{margin:0}.dim{opacity:.85;text-align:center}.msg{text-align:center;min-h
 #toast{position:fixed;left:50%;top:14px;transform:translate(-50%,-90px);padding:12px 18px;border-radius:20px;font-weight:600;z-index:60;transition:transform .3s}#toast.on{transform:translate(-50%,0)}
 #crop{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;background:rgba(30,10,80,.5);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
 #crop .card{width:min(340px,92vw);align-items:center}#cc{width:256px;height:256px;border-radius:50%;background:#fff;touch-action:none;cursor:grab;border:3px solid #fff}
+.tl{display:flex;gap:8px}.tb{flex:1;border:0;border-radius:14px;padding:8px 4px;background:rgba(255,255,255,.22);color:#fff;font:inherit;font-size:20px;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer}.tb span{font-size:12px;font-weight:700}.tb.on{background:#fff;color:#5b3df5}
+.pal{display:flex;flex-wrap:wrap;gap:6px;align-items:center}#cpk{width:34px;height:34px;border:0;padding:0;background:none;border-radius:50%;cursor:pointer}
+.szr{display:flex;align-items:center;gap:10px}.szr input{flex:1}.pwv{width:36px;height:36px;display:grid;place-items:center;flex:none}#szp{border-radius:50%;border:2px solid #fff;display:block}.szr b{width:28px;text-align:right}
+#pd .btn{padding:11px;font-size:15px}
+.nb{width:76px;padding:6px 8px;border-radius:12px;border:1px solid var(--b);background:rgba(255,255,255,.2);color:#fff;text-align:center;font:inherit;font-size:18px;outline:0;user-select:text;-webkit-user-select:text}
+.nb:disabled{opacity:.7}
+#panel.kb{position:fixed;left:8px;right:8px;bottom:calc(var(--kb,0px) + 8px);z-index:20}#panel.kb .btn.s{display:none}
+.msg:empty{display:none}
+@media(max-width:899px){.tb span{display:none}.dot{width:26px;height:26px}}
 /* Switch風エラー */
 #err{position:fixed;inset:0;z-index:99;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.6)}
 .dlg{width:min(620px,92vw);background:#ebebeb;color:#2d2d2d;border-radius:8px;box-shadow:0 8px 40px rgba(0,0,0,.5);font-family:"Hiragino Sans","Yu Gothic UI",Meiryo,sans-serif;animation:pop .2s}
@@ -104,8 +113,7 @@ h1,h2,p{margin:0}.dim{opacity:.85;text-align:center}.msg{text-align:center;min-h
   </div>
   <div class="side">
     <div class="glass card"><h2>部屋をつくる</h2><p class="dim">最大8人まで参加できます</p><button class="btn" onclick="host()">部屋をつくる</button></div>
-    <div class="glass card"><h2>部屋に参加</h2><input id="cin" class="in" inputmode="numeric" maxlength="6" placeholder="6桁のコード" autocomplete="off"><button class="btn s" onclick="join()">参加する</button></div>
-    <p id="mmsg" class="msg"></p>
+    <div class="glass card"><h2>部屋に参加</h2><input id="cin" class="in" inputmode="numeric" maxlength="6" placeholder="6桁のコード" autocomplete="off"><button class="btn s" onclick="join()">参加する</button><p id="mmsg" class="msg"></p></div>
   </div>
 </section>
 
@@ -115,8 +123,8 @@ h1,h2,p{margin:0}.dim{opacity:.85;text-align:center}.msg{text-align:center;min-h
     <div id="slots"></div>
     <div class="glass card set">
       <h2>ゲーム設定</h2>
-      <label>お題を決める時間<span id="vw">30秒</span></label><input id="cw" type="range" min="10" max="180" value="30">
-      <label>絵を描く時間<span id="vd">30秒</span></label><input id="cd" type="range" min="10" max="180" value="30">
+      <label>お題を決める時間<span><input id="nw" class="nb" type="number" min="10" max="180" inputmode="numeric"> 秒</span></label><input id="cw" type="range" min="10" max="180" value="30">
+      <label>絵を描く時間<span><input id="nd" class="nb" type="number" min="10" max="180" inputmode="numeric"> 秒</span></label><input id="cd" type="range" min="10" max="180" value="30">
       <p class="dim" style="font-size:13px">順番にお題を出して絵をかき、つぎの人が当てます</p>
       <button id="gstart" class="btn" onclick="startGame()">ゲーム開始</button>
       <p id="gwait" class="dim">ホストの開始をまっています…</p>
@@ -133,7 +141,13 @@ h1,h2,p{margin:0}.dim{opacity:.85;text-align:center}.msg{text-align:center;min-h
     <div class="rcol">
       <div class="glass panel" id="panel">
         <div id="pw"><input id="win" class="in" placeholder="ひらがなで入力" autocomplete="off"><button class="btn" onclick="submitWord()">決定して絵をかく</button></div>
-        <div id="pd"><div class="tools" id="tools"><input id="sz" type="range" min="3" max="36" value="10"></div><div class="row"><button class="btn s" onclick="undo()">もどす</button><button class="btn s" onclick="clr()">全部消す</button></div><button class="btn" onclick="sendImg()">送信</button></div>
+        <div id="pd">
+          <div class="tl"><button class="tb on" data-t="pen">✏️<span>ペン</span></button><button class="tb" data-t="eraser">🧽<span>消しゴム</span></button><button class="tb" data-t="fill">🪣<span>塗りつぶし</span></button></div>
+          <div class="pal" id="pal"><input id="cpk" type="color" value="#222222" aria-label="色を選ぶ"></div>
+          <div class="szr"><span class="pwv"><i id="szp"></i></span><input id="sz" type="range" min="1" max="60" value="8"><b id="szv">8</b></div>
+          <div class="row"><button class="btn s" onclick="undo()">↩ もどす</button><button class="btn s" onclick="redo()">↪ やり直し</button><button class="btn s" onclick="wipe()">🗑</button></div>
+          <button class="btn" onclick="sendImg()">送信</button>
+        </div>
         <div id="pg"><div id="hint"></div><input id="gin" class="in" placeholder="こたえをひらがなで" autocomplete="off"><button class="btn" onclick="submitGuess()">こたえる</button><button class="btn s" onclick="giveUp()">ギブアップ</button></div>
       </div>
       <div id="hl" class="glass"></div>
@@ -204,8 +218,8 @@ function dead(id){
     else{P=P.filter(p=>p.id!=id);try{conns[id].close()}catch(e){}delete conns[id];lob()}
   }else if(!isHost)showErr()}
 function startNet(){clearInterval(net);net=setInterval(()=>{const n=Date.now();
-  if(isHost){toAll({t:'p'},'h');P.slice().forEach(p=>p.id!='h'&&n-seen[p.id]>8000&&dead(p.id))}
-  else{up({t:'p'});if(n-seenH>8000)dead('h')}},1500)}
+  if(isHost){toAll({t:'p'},'h');P.slice().forEach(p=>p.id!='h'&&n-seen[p.id]>12000&&dead(p.id))}
+  else{up({t:'p'});if(n-seenH>12000)dead('h')}},1500)}
 function host(){
   cleanup();isHost=true;me.id='h';msg('部屋を準備中…');
   const code=String(Math.floor(Math.random()*1e6)).padStart(6,'0');
@@ -231,13 +245,14 @@ function join(){
 
 /* ---------- ホスト側ゲーム進行 ---------- */
 function startGame(){if(P.length<2)return;G={hist:[],dr:0,word:'',letter:POOL[Math.floor(Math.random()*POOL.length)]};toAll({t:'go'});phase('word')}
-function backToLobby(){G={};lob()}
+function backToLobby(){if(isHost){G={};lob()}else up({t:'tolobby'})}
 function phase(ph){G.ph=ph;const sec=ph=='word'?cfg.word:ph=='draw'?cfg.draw:30,n=P.length,gi=(G.dr+1)%n;
   toAll({t:'st',ph,dr:P[G.dr].id,gu:P[gi].id,letter:G.letter,n:G.hist.length+1,sec,len:[...G.word].length});
   clearTimeout(G.to);G.to=setTimeout(()=>over(ph=='guess'?P[gi].id:P[G.dr].id,ph=='word'?'wordtime':ph=='draw'?'drawtime':'giveup'),(sec+3)*1000)}
 function over(loser,reason){clearTimeout(G.to);G.ph='over';toAll({t:'over',loser,reason,word:G.word})}
 function hostMsg(f,m){seen[f]=Date.now();
   if(m.t=='hello'){if(P.some(p=>p.id==f))return;P.push({id:f,name:String(m.name||'?').slice(0,8),icon:okIcon(m.icon)?m.icon:''});return lob()}
+  if(m.t=='tolobby'){if(G.ph=='over')backToLobby();return}
   if(!G.ph||G.ph=='over')return;
   const gi=(G.dr+1)%P.length,dr=P[G.dr].id,gu=P[gi].id;
   if(m.t=='word'&&G.ph=='word'&&f==dr){
@@ -255,7 +270,7 @@ function hostMsg(f,m){seen[f]=Date.now();
 function recv(m){
   if(m.t=='lobby'){if(m.P){P=m.P;cfg=m.cfg}$('#ov').hidden=true;clearInterval(tmr);renderLobby();show('lobby')}
   else if(m.t=='full'||m.t=='busy'){cleanup();show('menu');msg(m.t=='full'?'この部屋は満員です（最大8人）':'この部屋はゲーム中です')}
-  else if(m.t=='go'){hist=[];$('#ov').hidden=true;show('play')}
+  else if(m.t=='go'){hist=[];lastImg=pic=pw='';S={};renderHist();renderPlayers();$('#ov').hidden=true;show('play')}
   else if(m.t=='st'){S=m;onSt()}
   else if(m.t=='img')pic=lastImg=m.img;
   else if(m.t=='ok'){hist.push({word:m.word,img:lastImg,by:S.dr});toast('せいかい！「'+m.word+'」');renderHist()}
@@ -268,10 +283,13 @@ function renderLobby(){
   for(let i=0;i<8;i++){const p=P[i],d=document.createElement('div');d.className='slot glass'+(p?'':' empty');
     if(p){const a=av(p,'lg');a.style.animationDelay=(-i*.4)+'s';const n=document.createElement('b'),t=document.createElement('span');n.textContent=p.name;t.textContent=p.id=='h'?'👑 ホスト':p.id==me.id?'あなた':'参加中';d.append(a,n,t)}
     else d.innerHTML='<span class="wt">まっています<i>…</i></span>';s.append(d)}
-  $('#cw').value=cfg.word;$('#cd').value=cfg.draw;$('#vw').textContent=fmt(cfg.word);$('#vd').textContent=fmt(cfg.draw);
-  $('#cw').disabled=$('#cd').disabled=!isHost;$('#gstart').hidden=!isHost;$('#gwait').hidden=isHost;$('#gstart').disabled=P.length<2}
-$('#cw').oninput=e=>{if(isHost){cfg.word=+e.target.value;lob()}};
-$('#cd').oninput=e=>{if(isHost){cfg.draw=+e.target.value;lob()}};
+  $('#cw').value=cfg.word;$('#cd').value=cfg.draw;if(document.activeElement!=$('#nw'))$('#nw').value=cfg.word;if(document.activeElement!=$('#nd'))$('#nd').value=cfg.draw;
+  ['#cw','#cd','#nw','#nd'].forEach(q=>$(q).disabled=!isHost);$('#gstart').hidden=!isHost;$('#gwait').hidden=isHost;$('#gstart').disabled=P.length<2}
+const setT=(k,v)=>{cfg[k]=Math.min(180,Math.max(10,Math.round(+v)||cfg[k]));lob()};
+[['cw','nw','word'],['cd','nd','draw']].forEach(([r,n,k])=>{
+  $('#'+r).oninput=e=>isHost&&setT(k,e.target.value);
+  $('#'+n).oninput=e=>{const v=+e.target.value;if(isHost&&v>=10&&v<=180)setT(k,v)};
+  $('#'+n).onchange=e=>isHost&&setT(k,e.target.value)});
 function view(p,h){['pw','pd','pg'].forEach(i=>$('#'+i).hidden=i!=p);$('#panel').hidden=!['pw','pd','pg'].includes(p);
   $('#cv').hidden=p!='pd';$('#pic').hidden=!['pg','ps'].includes(p);$('#ph').hidden=!h;if(h)$('#ph').innerHTML=h}
 function timer(s,fn){clearInterval(tmr);$('#tm').hidden=!s;if(!s)return;let t=s;
@@ -317,24 +335,51 @@ function showOver(m){clearInterval(tmr);const lo=esc(nm(m.loser)),w=esc(String(m
   $('#osc').textContent=hist.length+'れんさ';
   const g=$('#gal');g.textContent='';const items=hist.slice();if(m.reason=='giveup'&&lastImg)items.push({word:String(m.word||'').slice(0,30),img:lastImg});
   items.forEach(h=>{const f=document.createElement('figure'),i=document.createElement('img'),c=document.createElement('figcaption');i.src=h.img||'';c.textContent=h.word;f.append(i,c);g.append(f)});
-  $('#rm').hidden=!isHost;$('#ov').hidden=false}
+  $('#ov').hidden=false}
 
 /* ---------- お絵かき ---------- */
-const cv=$('#cv'),cx=cv.getContext('2d');cv.width=cv.height=600;cx.lineCap=cx.lineJoin='round';
-let col='#222',drawing=false,lp,snaps=[];
-function clr(){cx.fillStyle='#fff';cx.fillRect(0,0,600,600);snaps=[]}
-function undo(){const s=snaps.pop();if(s)cx.putImageData(s,0,0)}
+const cv=$('#cv'),cx=cv.getContext('2d',{willReadFrequently:true});cv.width=cv.height=600;cx.lineCap=cx.lineJoin='round';
+let col='#222222',tool='pen',drawing=false,lp,lm,snaps=[],redos=[];
+const snap=()=>{snaps.push(cx.getImageData(0,0,600,600));if(snaps.length>20)snaps.shift();redos=[]};
+function clr(){cx.fillStyle='#fff';cx.fillRect(0,0,600,600);snaps=[];redos=[]}
+function wipe(){snap();cx.fillStyle='#fff';cx.fillRect(0,0,600,600)}
+function undo(){const s=snaps.pop();if(s){redos.push(cx.getImageData(0,0,600,600));cx.putImageData(s,0,0)}}
+function redo(){const s=redos.pop();if(s){snaps.push(cx.getImageData(0,0,600,600));cx.putImageData(s,0,0)}}
+function fill(x,y){const W=600,id=cx.getImageData(0,0,W,W),d=id.data,i0=(y*W+x)*4,tr=d[i0],tg=d[i0+1],tb=d[i0+2],n=parseInt(col.slice(1),16),r=n>>16,g=n>>8&255,b=n&255,T=90;
+  const m=i=>Math.abs(d[i]-tr)+Math.abs(d[i+1]-tg)+Math.abs(d[i+2]-tb)<=T;
+  if(Math.abs(r-tr)+Math.abs(g-tg)+Math.abs(b-tb)<=T)return false;
+  const st=[[x,y]];
+  while(st.length){let[px,py]=st.pop();while(px>=0&&m((py*W+px)*4))px--;px++;let u=0,w=0;
+    while(px<W&&m((py*W+px)*4)){const j=(py*W+px)*4;d[j]=r;d[j+1]=g;d[j+2]=b;
+      if(py>0){const q=m(j-W*4);if(q&&!u){st.push([px,py-1]);u=1}else if(!q)u=0}
+      if(py<W-1){const q=m(j+W*4);if(q&&!w){st.push([px,py+1]);w=1}else if(!q)w=0}
+      px++}}
+  cx.putImageData(id,0,0);return true}
 const pt=e=>{const r=cv.getBoundingClientRect();return[(e.clientX-r.left)*600/r.width,(e.clientY-r.top)*600/r.height]};
-cv.onpointerdown=e=>{cv.setPointerCapture(e.pointerId);snaps.push(cx.getImageData(0,0,600,600));if(snaps.length>15)snaps.shift();
-  const sz=+$('#sz').value;cx.strokeStyle=cx.fillStyle=col;cx.lineWidth=sz;drawing=true;lp=pt(e);cx.beginPath();cx.arc(lp[0],lp[1],sz/2,0,7);cx.fill()};
-cv.onpointermove=e=>{if(!drawing)return;const p=pt(e);cx.beginPath();cx.moveTo(lp[0],lp[1]);cx.lineTo(p[0],p[1]);cx.stroke();lp=p};
-cv.onpointerup=cv.onpointercancel=()=>drawing=false;
-['#222','#ff3b30','#ff9500','#ffcc00','#34c759','#0a84ff','#af52de','#fff'].forEach((c,i)=>{
-  const b=document.createElement('button');b.className='dot'+(i?'':' on');b.style.background=c;b.setAttribute('aria-label',c=='#fff'?'消しゴム':'色');
-  b.onclick=()=>{col=c;document.querySelectorAll('.dot').forEach(d=>d.classList.toggle('on',d===b))};$('#tools').insertBefore(b,$('#sz'))});
+const lw=e=>{const s=+$('#sz').value;return e.pointerType=='pen'&&e.pressure?Math.max(1,s*(.3+e.pressure*.9)):s};
+cv.onpointerdown=e=>{cv.setPointerCapture(e.pointerId);const p=pt(e);
+  if(tool=='fill'){snap();if(!fill(p[0]|0,p[1]|0))snaps.pop();return}
+  snap();drawing=true;cx.strokeStyle=cx.fillStyle=tool=='eraser'?'#fff':col;cx.lineWidth=lw(e);lp=lm=p;
+  cx.beginPath();cx.arc(p[0],p[1],cx.lineWidth/2,0,7);cx.fill()};
+cv.onpointermove=e=>{if(!drawing)return;const p=pt(e),m=[(lp[0]+p[0])/2,(lp[1]+p[1])/2];cx.lineWidth=lw(e);
+  cx.beginPath();cx.moveTo(lm[0],lm[1]);cx.quadraticCurveTo(lp[0],lp[1],m[0],m[1]);cx.stroke();lm=m;lp=p};
+cv.onpointerup=cv.onpointercancel=()=>{if(drawing){cx.beginPath();cx.moveTo(lm[0],lm[1]);cx.lineTo(lp[0],lp[1]);cx.stroke()}drawing=false};
+const pv=()=>{const s=+$('#sz').value,e=$('#szp');$('#szv').textContent=s;e.style.width=e.style.height=Math.max(3,Math.min(s,32))+'px';e.style.background=tool=='eraser'?'#fff':col};
+const setCol=c=>{col=c;$('#cpk').value=c;if(tool!='pen')document.querySelector('[data-t=pen]').click();document.querySelectorAll('.dot').forEach(d=>d.classList.toggle('on',d.dataset.c==c));pv()};
+document.querySelectorAll('.tb').forEach(b=>b.onclick=()=>{tool=b.dataset.t;document.querySelectorAll('.tb').forEach(x=>x.classList.toggle('on',x===b));cv.style.cursor=tool=='fill'?'cell':'crosshair';pv()});
+['#222222','#8e8e93','#ff3b30','#ff9500','#ffcc00','#34c759','#00c7be','#0a84ff','#af52de','#ff2d92','#a2845e','#ffffff'].forEach(c=>{
+  const b=document.createElement('button');b.className='dot';b.dataset.c=c;b.style.background=c;b.setAttribute('aria-label','色 '+c);b.onclick=()=>setCol(c);$('#pal').insertBefore(b,$('#cpk'))});
+$('#cpk').oninput=e=>setCol(e.target.value);$('#sz').oninput=pv;setCol('#222222');
 $('#win').addEventListener('keydown',e=>{if(e.key=='Enter'&&!e.isComposing)submitWord()});
 $('#gin').addEventListener('keydown',e=>{if(e.key=='Enter'&&!e.isComposing)submitGuess()});
 $('#cin').addEventListener('keydown',e=>{if(e.key=='Enter')join()});
+/* キーボードが出たら入力パネルだけをキーボードの真上に浮かせる */
+const vv=window.visualViewport;
+function kb(){if(!vv)return;const h=Math.max(0,innerHeight-vv.height-vv.offsetTop),a=document.activeElement;
+  document.documentElement.style.setProperty('--kb',h+'px');
+  const open=h>120&&a&&a.tagName=='INPUT'&&a.closest('#panel');$('#panel').classList.toggle('kb',!!open);if(h>120)scrollTo(0,0)}
+if(vv){vv.addEventListener('resize',kb);vv.addEventListener('scroll',kb)}
+document.addEventListener('focusout',()=>setTimeout(()=>{kb();scrollTo(0,0)},120));
 </script>
 </body>
 </html>
