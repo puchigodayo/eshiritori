@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#5b3df5">
+<title>えしりとり</title>
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<style>
+:root{--g:rgba(255,255,255,.17);--b:rgba(255,255,255,.4);--ac:#0a84ff}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+[hidden]{display:none!important}
+html,body{height:100%;margin:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Rounded","Hiragino Maru Gothic ProN","Hiragino Sans",sans-serif;color:#fff;overflow:hidden;background:#2a1f6b;user-select:none;-webkit-user-select:none}
+.bg{position:fixed;inset:0;background:linear-gradient(160deg,#4f46e5,#d946ef 55%,#fb923c);overflow:hidden}
+.bg i{position:absolute;border-radius:50%;filter:blur(60px);opacity:.65;animation:fl 16s ease-in-out infinite alternate}
+@keyframes fl{to{transform:translate(40px,-60px) scale(1.2)}}
+.screen{position:fixed;inset:0;display:none;flex-direction:column;gap:12px;max-width:480px;margin:0 auto;padding:max(env(safe-area-inset-top),16px) 16px max(env(safe-area-inset-bottom),16px)}
+.screen.on{display:flex}
+.glass{background:var(--g);backdrop-filter:blur(28px) saturate(180%);-webkit-backdrop-filter:blur(28px) saturate(180%);border:1px solid var(--b);border-radius:28px;box-shadow:0 10px 36px rgba(30,10,80,.25),inset 0 1px 0 rgba(255,255,255,.55)}
+.card{padding:18px;display:flex;flex-direction:column;gap:12px}
+.btn{border:0;border-radius:16px;padding:15px;font:inherit;font-size:17px;font-weight:700;color:#fff;background:var(--ac);width:100%;transition:transform .12s,opacity .12s}
+.btn:active{transform:scale(.97);opacity:.85}
+.btn.s{background:rgba(255,255,255,.26);box-shadow:inset 0 1px 0 rgba(255,255,255,.4)}
+.in{width:100%;border:1px solid var(--b);background:rgba(255,255,255,.2);color:#fff;border-radius:16px;padding:14px;font:inherit;font-size:19px;text-align:center;outline:0;user-select:text;-webkit-user-select:text}
+.in::placeholder{color:rgba(255,255,255,.65)}
+.in:focus{background:rgba(255,255,255,.3)}
+.in.sh{animation:sh .35s}
+@keyframes sh{25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
+#menu{justify-content:center}
+.hero{text-align:center;margin-bottom:6px}
+.hero h1{margin:0;font-size:46px;letter-spacing:.04em;text-shadow:0 4px 24px rgba(60,20,120,.4)}
+.hero p{margin:6px 0 0;opacity:.88}
+.logo{font-size:56px}
+.or{text-align:center;opacity:.8;font-size:14px}
+.code{font-size:48px;font-weight:800;letter-spacing:.14em;text-align:center;font-variant-numeric:tabular-nums;user-select:text;-webkit-user-select:text}
+.msg{text-align:center;min-height:22px;margin:0;font-weight:600}
+.dim{text-align:center;opacity:.85;margin:0}
+.rule{font-size:13px;opacity:.85;text-align:center;line-height:1.7}
+.top{display:flex;align-items:center;gap:12px;padding:10px 14px}
+.badge{width:44px;height:44px;border-radius:14px;background:rgba(255,255,255,.9);color:#5b3df5;font-size:26px;font-weight:800;display:grid;place-items:center}
+#rd{font-weight:700;flex:1}
+.tm{display:flex;align-items:center;gap:8px;width:120px}
+#tn{font-size:24px;font-weight:800;width:32px;text-align:right;font-variant-numeric:tabular-nums}
+.barw{flex:1;height:8px;border-radius:4px;background:rgba(255,255,255,.28);overflow:hidden}
+#bar{height:100%;background:#fff;border-radius:4px;transition:width 1s linear}
+.tm.low #bar{background:#ff453a}.tm.low #tn{color:#ffd0cc}
+.stage{position:relative;width:min(100%,calc(100dvh - 340px));aspect-ratio:1;align-self:center;overflow:hidden;min-height:200px}
+.stage canvas,.stage img{position:absolute;inset:0;width:100%;height:100%;background:#fff;touch-action:none}
+#ph{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;text-align:center;padding:20px;line-height:1.6}
+#ph b{font-size:84px;line-height:1;text-shadow:0 6px 24px rgba(60,20,120,.4)}
+#ph small{opacity:.85}
+.panel{padding:14px;display:flex;flex-direction:column;gap:10px}
+.panel>div{display:flex;flex-direction:column;gap:10px}
+.row{display:flex;gap:10px}
+.tools{flex-direction:row!important;align-items:center;justify-content:space-between;gap:6px!important}
+.dot{width:28px;height:28px;border-radius:50%;border:2px solid rgba(255,255,255,.7);padding:0}
+.dot.on{outline:3px solid #fff;outline-offset:2px}
+input[type=range]{width:84px;accent-color:#fff}
+#hint{text-align:center;font-size:18px;line-height:1.5}
+#hint b{letter-spacing:.2em;font-size:22px}
+.ov{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(40,20,90,.35);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);z-index:5}
+.ov .card{width:100%;max-height:100%;overflow:auto;text-align:center}
+.ov h2{margin:0;font-size:34px}.ov p{margin:0}
+#gal{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+#gal figure{margin:0;font-size:13px}
+#gal img{width:100%;aspect-ratio:1;border-radius:12px;background:#fff;display:block}
+#toast{position:fixed;left:50%;top:max(env(safe-area-inset-top),14px);transform:translate(-50%,-90px);padding:12px 18px;border-radius:20px;font-weight:600;z-index:9;transition:transform .3s}
+#toast.on{transform:translate(-50%,0)}
+</style>
+</head>
+<body>
+<div class="bg"><i style="width:300px;height:300px;background:#22d3ee;left:-80px;top:-60px"></i><i style="width:260px;height:260px;background:#fde047;right:-70px;top:38%;animation-delay:-5s"></i><i style="width:320px;height:320px;background:#f43f5e;left:20%;bottom:-120px;animation-delay:-9s"></i></div>
+
+<section id="menu" class="screen on">
+  <div class="hero"><div class="logo">🎨</div><h1>えしりとり</h1><p>絵を見て当てて、つぎの絵をかこう</p></div>
+  <div id="mainbox" class="glass card">
+    <button class="btn" onclick="host()">部屋をつくる</button>
+    <div class="or">または</div>
+    <input id="cin" class="in" inputmode="numeric" maxlength="6" placeholder="6桁のコードを入力" autocomplete="off">
+    <button class="btn s" onclick="join()">参加する</button>
+  </div>
+  <div id="hostbox" class="glass card" hidden>
+    <p class="dim">あいてにこのコードを伝えてね</p>
+    <div id="code" class="code">------</div>
+    <p class="dim">参加をまっています…</p>
+    <button class="btn s" onclick="toMenu()">やめる</button>
+  </div>
+  <p id="mmsg" class="msg"></p>
+  <div class="rule">お題は30秒で入力 → 30秒で絵をかく → あいては30秒で当てる<br>「ん」で終わる言葉や同じ言葉は負け</div>
+</section>
+
+<section id="play" class="screen">
+  <div class="glass top">
+    <div class="badge" id="lt">あ</div>
+    <div id="rd">1わめ</div>
+    <div id="tm" class="tm"><span id="tn">30</span><div class="barw"><div id="bar"></div></div></div>
+  </div>
+  <div class="glass stage"><canvas id="cv"></canvas><img id="pic" alt=""><div id="ph"></div></div>
+  <div class="glass panel" id="panel">
+    <div id="pw"><input id="win" class="in" placeholder="ひらがなで入力" autocomplete="off"><button class="btn" onclick="submitWord()">決定して絵をかく</button></div>
+    <div id="pd">
+      <div class="tools" id="tools"><input id="sz" type="range" min="3" max="36" value="10"></div>
+      <div class="row"><button class="btn s" onclick="undo()">もどす</button><button class="btn s" onclick="clr()">全部消す</button></div>
+      <button class="btn" onclick="sendImg()">送信</button>
+    </div>
+    <div id="pg"><div id="hint"></div><input id="gin" class="in" placeholder="こたえをひらがなで" autocomplete="off"><button class="btn" onclick="submitGuess()">こたえる</button><button class="btn s" onclick="giveUp()">ギブアップ</button></div>
+  </div>
+  <div id="ov" class="ov" hidden><div class="glass card">
+    <h2 id="ot"></h2><p id="orr"></p><p id="osc" style="font-weight:700"></p>
+    <div id="gal"></div>
+    <button id="rm" class="btn" onclick="rematch()">もういちど</button>
+    <button class="btn s" onclick="toMenu()">メニューにもどる</button>
+  </div></div>
+</section>
+<div id="toast" class="glass"></div>
+
+<script>
+const $=s=>document.querySelector(s);
+const POOL='あいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろわ';
+const SM={ぁ:'あ',ぃ:'い',ぅ:'う',ぇ:'え',ぉ:'お',ゃ:'や',ゅ:'ゆ',ょ:'よ',っ:'つ',ゎ:'わ'};
+const base=c=>c.normalize('NFD')[0];
+const lastCh=w=>{const c=w.replace(/ー+$/,'').slice(-1);return SM[c]||c};
+let peer,conn,role,letter,hist=[],curWord,curImg,curPic,lastImg,tmr,over=false;
+
+function show(id){document.querySelectorAll('.screen').forEach(e=>e.classList.toggle('on',e.id===id))}
+function msg(t){$('#mmsg').textContent=t}
+let tt;function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('on');clearTimeout(tt);tt=setTimeout(()=>e.classList.remove('on'),1900)}
+const send=o=>{if(conn&&conn.open)conn.send(o)};
+
+/* ---------- 接続 ---------- */
+function cleanup(){
+  clearInterval(tmr);const c=conn;conn=null;
+  try{c&&c.close()}catch(e){}
+  try{peer&&peer.destroy()}catch(e){}
+  peer=null;$('#ov').hidden=true;
+}
+function toMenu(){cleanup();over=false;show('menu');$('#mainbox').hidden=false;$('#hostbox').hidden=true;msg('')}
+function wire(c){
+  c.on('data',onData);
+  c.on('close',()=>{if(conn===c&&!over){conn=null;alert('あいてが切断しました');toMenu()}});
+}
+function host(){
+  cleanup();role='host';msg('部屋を準備中…');
+  const code=String(Math.floor(Math.random()*1e6)).padStart(6,'0');
+  peer=new Peer('esiri'+code);
+  peer.on('open',()=>{msg('');$('#code').textContent=code;$('#hostbox').hidden=false;$('#mainbox').hidden=true});
+  peer.on('error',e=>{if(e.type==='unavailable-id')host();else msg('接続エラー: '+e.type)});
+  peer.on('connection',c=>{
+    if(conn){c.close();return}
+    conn=c;wire(c);c.on('open',begin);
+  });
+}
+function join(){
+  const code=$('#cin').value.trim();
+  if(!/^\d{6}$/.test(code))return msg('6桁の数字を入力してね');
+  cleanup();role='guest';msg('接続中…');
+  peer=new Peer();
+  peer.on('open',()=>{
+    const c=conn=peer.connect('esiri'+code,{reliable:true});wire(c);
+    setTimeout(()=>{if(conn===c&&!c.open)msg('部屋が見つかりませんでした')},8000);
+  });
+  peer.on('error',e=>msg(e.type==='peer-unavailable'?'その部屋はありません':'接続エラー: '+e.type));
+}
+
+/* ---------- ゲーム進行 ---------- */
+function begin(){
+  hist=[];over=false;letter=POOL[Math.floor(Math.random()*POOL.length)];
+  send({t:'start',letter});$('#ov').hidden=true;show('play');myWord();
+}
+function rematch(){if(role==='host')begin()}
+function phase(p,html){
+  ['pw','pd','pg'].forEach(i=>$('#'+i).hidden=i!==p);
+  $('#panel').hidden=!['pw','pd','pg'].includes(p);
+  $('#cv').hidden=p!=='pd';$('#pic').hidden=p!=='pg';$('#ph').hidden=!html;
+  if(html)$('#ph').innerHTML=html;
+  $('#lt').textContent=letter;$('#rd').textContent=(hist.length+1)+'わめ';
+}
+function timer(s,fn){
+  clearInterval(tmr);
+  if(!s){$('#tm').hidden=true;return}
+  $('#tm').hidden=false;let t=s;
+  const u=()=>{$('#tn').textContent=t;$('#bar').style.width=(t/s*100)+'%';$('#tm').classList.toggle('low',t<=5)};
+  $('#bar').style.transition='none';u();void $('#bar').offsetWidth;$('#bar').style.transition='';
+  tmr=setInterval(()=>{t--;u();if(t<=0){clearInterval(tmr);fn()}},1000);
+}
+function theirTurn(t){phase('pt','<small>あいてのターン</small><span>'+(t||'お題を考えて絵をかいています…')+'</span>');timer(0)}
+function myWord(){
+  phase('pw','<small>お題</small><b>「'+letter+'」</b><span>からはじまる言葉をきめよう<br>（ひらがなのみ）</span>');
+  $('#win').value='';timer(30,()=>lose('wordtime'));
+}
+function submitWord(){
+  const w=$('#win').value.trim();
+  if(!/^[ぁ-ゖー]{2,}$/.test(w)||w[0]==='ー')return toast('ひらがな2文字以上で入力してね');
+  if(base(w[0])!==base(letter))return toast('「'+letter+'」からはじめてね');
+  if(hist.some(h=>h.word===w))return toast('その言葉はもう出てるよ');
+  curWord=w;
+  if(lastCh(w)==='ん')return lose('n');
+  myDraw();
+}
+function myDraw(){
+  phase('pd');clr();timer(30,sendImg);
+}
+function sendImg(){
+  if($('#pd').hidden)return;
+  clearInterval(tmr);
+  curImg=lastImg=cv.toDataURL('image/jpeg',.7);
+  send({t:'img',img:curImg,len:[...curWord].length,letter});
+  phase('pt','<small>お題「'+curWord+'」</small><span>あいてが当てるのをまっています…</span>');timer(0);
+}
+function guessPhase(m){
+  if(typeof m.img!=='string'||!m.img.startsWith('data:image/'))return;
+  curPic=lastImg=m.img;letter=m.letter;
+  const n=Math.min(30,m.len|0);
+  $('#pic').src=m.img;
+  $('#hint').innerHTML='「'+letter+'」からはじまる '+n+'文字<br><b>'+'○'.repeat(n)+'</b>';
+  $('#gin').value='';phase('pg');timer(30,giveUp);
+}
+function submitGuess(){const g=$('#gin').value.trim();if(g)send({t:'guess',g})}
+function giveUp(){if($('#pg').hidden)return;clearInterval(tmr);send({t:'giveup'});phase('pt','<span>あいてが結果を確認中…</span>')}
+function wrong(){const e=$('#gin');e.classList.remove('sh');void e.offsetWidth;e.classList.add('sh');e.value='';toast('ちがうみたい！もう一度')}
+function lose(reason){
+  clearInterval(tmr);
+  const o={t:'over',loser:role,reason,word:curWord};
+  send(o);showOver(o.loser,reason,curWord);
+}
+function onData(m){
+  if(m.t==='start'){hist=[];over=false;letter=m.letter;$('#ov').hidden=true;show('play');theirTurn('お題を考えています…')}
+  else if(m.t==='img')guessPhase(m);
+  else if(m.t==='guess'){
+    if(m.g===curWord){
+      send({t:'res',ok:1,word:curWord});
+      hist.push({word:curWord,img:curImg});letter=lastCh(curWord);theirTurn('お題を考えています…');
+    }else send({t:'res',ok:0});
+  }
+  else if(m.t==='res'){
+    if(m.ok&&typeof m.word==='string'){hist.push({word:m.word,img:curPic});letter=lastCh(m.word);toast('せいかい！');myWord()}
+    else wrong();
+  }
+  else if(m.t==='giveup'){
+    const o={t:'over',loser:role==='host'?'guest':'host',reason:'giveup',word:curWord};
+    send(o);showOver(o.loser,'giveup',curWord);
+  }
+  else if(m.t==='over')showOver(m.loser,m.reason,m.word);
+}
+function showOver(loser,reason,word){
+  clearInterval(tmr);over=true;
+  const win=loser!==role,me=loser===role;
+  $('#ot').textContent=win?'🎉 かち！':'😢 まけ…';
+  const w=typeof word==='string'?word.slice(0,30):'';
+  $('#orr').textContent=reason==='giveup'?'こたえは「'+w+'」でした':reason==='n'?(me?'「ん」で終わってしまった！':'あいてが「ん」で終わった！'):(me?'時間切れ！':'あいてが時間切れ！');
+  $('#osc').textContent=hist.length+'れんさ';
+  const g=$('#gal');g.textContent='';
+  const items=hist.slice();
+  if(reason==='giveup'&&lastImg)items.push({word:w,img:lastImg});
+  items.forEach(h=>{
+    const f=document.createElement('figure'),i=document.createElement('img'),c=document.createElement('figcaption');
+    i.src=h.img;c.textContent=h.word;f.append(i,c);g.append(f);
+  });
+  $('#rm').hidden=role!=='host';
+  $('#ov').hidden=false;
+}
+
+/* ---------- お絵かき ---------- */
+const cv=$('#cv'),cx=cv.getContext('2d');cv.width=cv.height=600;
+cx.lineCap=cx.lineJoin='round';
+let col='#222',drawing=false,lp,snaps=[];
+function clr(){cx.fillStyle='#fff';cx.fillRect(0,0,600,600);snaps=[]}
+function undo(){const s=snaps.pop();if(s)cx.putImageData(s,0,0)}
+const pt=e=>{const r=cv.getBoundingClientRect();return[(e.clientX-r.left)*600/r.width,(e.clientY-r.top)*600/r.height]};
+cv.onpointerdown=e=>{
+  cv.setPointerCapture(e.pointerId);
+  snaps.push(cx.getImageData(0,0,600,600));if(snaps.length>15)snaps.shift();
+  const sz=+$('#sz').value;cx.strokeStyle=cx.fillStyle=col;cx.lineWidth=sz;
+  drawing=true;lp=pt(e);cx.beginPath();cx.arc(lp[0],lp[1],sz/2,0,7);cx.fill();
+};
+cv.onpointermove=e=>{if(!drawing)return;const p=pt(e);cx.beginPath();cx.moveTo(lp[0],lp[1]);cx.lineTo(p[0],p[1]);cx.stroke();lp=p};
+cv.onpointerup=cv.onpointercancel=()=>drawing=false;
+['#222','#ff3b30','#ff9500','#ffcc00','#34c759','#0a84ff','#af52de','#fff'].forEach((c,i)=>{
+  const b=document.createElement('button');b.className='dot'+(i?'':' on');b.style.background=c;b.setAttribute('aria-label',c==='#fff'?'消しゴム':'色');
+  b.onclick=()=>{col=c;document.querySelectorAll('.dot').forEach(d=>d.classList.toggle('on',d===b))};
+  $('#tools').insertBefore(b,$('#sz'));
+});
+
+$('#win').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.isComposing)submitWord()});
+$('#gin').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.isComposing)submitGuess()});
+$('#cin').addEventListener('keydown',e=>{if(e.key==='Enter')join()});
+</script>
+</body>
+</html>
