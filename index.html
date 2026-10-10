@@ -37,7 +37,9 @@ h1,h2,p{margin:0}.dim{opacity:.85;text-align:center}.msg{text-align:center;min-h
 .top{display:flex;align-items:center;gap:14px;padding:10px 16px}
 .lbody{flex:1;min-height:0;display:grid;gap:12px;grid-template-columns:1fr;grid-template-rows:minmax(0,1fr) auto}
 .sw{display:flex;padding:12px;overflow:auto;min-height:0}#slots{display:grid;gap:12px;grid-template-columns:repeat(2,1fr);grid-auto-rows:minmax(110px,1fr);flex:1;min-height:0;align-content:start}
-.set{overflow:auto;max-height:52dvh}
+.set{overflow-x:hidden;overflow-y:auto;max-height:52dvh}.set>*{min-width:0;max-width:100%}.set label{gap:8px;align-items:center}
+.kbf{position:fixed!important;left:12px;right:12px;width:auto!important;bottom:calc(var(--kb,0px) + 8px);z-index:40;padding:14px!important;font-size:20px!important;text-align:center;background:rgba(55,30,130,.9)!important;box-shadow:0 8px 30px rgba(0,0,0,.4)}
+.nofx{backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
 .slot{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:8px;min-height:110px}
 .slot b{font-size:20px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.slot span{opacity:.85;font-size:14px}
 .slot .av{animation:bob 2.4s ease-in-out infinite}@keyframes bob{50%{transform:translateY(-8px)}}
@@ -222,7 +224,7 @@ function startNet(){clearInterval(net);net=setInterval(()=>{const n=Date.now();
   if(isHost){toAll({t:'p'},'h');P.slice().forEach(p=>p.id!='h'&&n-seen[p.id]>12000&&dead(p.id))}
   else{up({t:'p'});if(n-seenH>12000)dead('h')}},1500)}
 function host(){
-  cleanup();isHost=true;me.id='h';msg('部屋を準備中…');
+  document.activeElement&&document.activeElement.blur();cleanup();isHost=true;me.id='h';msg('部屋を準備中…');
   const code=String(Math.floor(Math.random()*1e6)).padStart(6,'0');
   peer=new Peer('esiri'+code);
   peer.on('open',()=>{msg('');P=[{id:'h',name:prof.name,icon:prof.icon}];G={};$('#rcode').textContent=code;startNet();lob()});
@@ -235,7 +237,7 @@ function host(){
     c.on('close',()=>{if(conns[id]===c)dead(id)})})}
 function join(){
   const code=$('#cin').value.trim();if(!/^\d{6}$/.test(code))return msg('6桁の数字を入力してね');
-  cleanup();isHost=false;msg('接続中…');$('#rcode').textContent=code;
+  document.activeElement&&document.activeElement.blur();cleanup();isHost=false;msg('接続中…');$('#rcode').textContent=code;
   peer=new Peer();
   peer.on('open',id=>{me.id=id;const c=conn=peer.connect('esiri'+code,{reliable:true});
     c.on('open',()=>{seenH=Date.now();startNet();c.send({t:'hello',name:prof.name,icon:prof.icon})});
@@ -376,12 +378,17 @@ $('#gin').addEventListener('keydown',e=>{if(e.key=='Enter'&&!e.isComposing)submi
 $('#cin').addEventListener('keydown',e=>{if(e.key=='Enter')join()});
 /* キーボードが出たら入力パネルだけをキーボードの真上に浮かせる */
 const vv=window.visualViewport;
+let fl=null,sp=null;
+function unfloat(){if(fl){fl.classList.remove('kbf');const g=fl.closest('.glass');if(g)g.classList.remove('nofx');fl=null}if(sp){sp.remove();sp=null}}
 function kb(){if(!vv)return;const h=Math.max(0,innerHeight-vv.height-vv.offsetTop),a=document.activeElement;
   document.documentElement.style.setProperty('--kb',h+'px');
   const open=!!(h>120&&a&&a.tagName=='INPUT'&&a.closest('#panel')),pn=$('#panel'),rc=document.querySelector('.rcol');
   if(open&&!pn.classList.contains('kb'))rc.style.minHeight=rc.offsetHeight+'px';
   if(!open)rc.style.minHeight='';
-  pn.classList.toggle('kb',open);if(h>120)scrollTo(0,0)}
+  pn.classList.toggle('kb',open);if(h>120)scrollTo(0,0);
+  const t=h>120&&a&&a.tagName=='INPUT'&&!a.closest('#panel,#crop')&&['text','number','tel','search'].includes(a.type);
+  if(t){if(fl!==a){unfloat();sp=document.createElement('div');sp.style.height=a.offsetHeight+'px';a.after(sp);a.classList.add('kbf');const g=a.closest('.glass');if(g)g.classList.add('nofx');fl=a}}
+  else unfloat()}
 if(vv){vv.addEventListener('resize',kb);vv.addEventListener('scroll',kb)}
 document.addEventListener('focusout',()=>setTimeout(()=>{kb();scrollTo(0,0)},120));
 </script>
