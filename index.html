@@ -75,7 +75,7 @@ h1,h2,p{margin:0}.dim{opacity:.85;text-align:center}.msg{text-align:center;min-h
 .ov{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:16px;background:var(--ovb);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);z-index:5}
 .ov .card{width:min(560px,100%);max-height:100%;overflow:auto;text-align:center}.ov h2{font-size:34px}
 #gal{display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:8px}#gal figure{margin:0;font-size:13px}#gal img{width:100%;aspect-ratio:1;border-radius:12px;background:#fff;display:block}
-#toast{position:fixed;left:50%;top:14px;transform:translate(-50%,-90px);padding:12px 18px;border-radius:20px;font-weight:600;z-index:60;transition:transform .3s}#toast.on{transform:translate(-50%,0)}
+#toast{position:fixed;left:50%;top:70px;transform:translate(-50%,-190px);padding:12px 18px;border-radius:20px;font-weight:600;z-index:60;transition:transform .3s}#toast.on{transform:translate(-50%,0)}
 #crop{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;background:var(--ovb);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
 #crop .card{width:min(340px,92vw);align-items:center}#cc{width:256px;height:256px;border-radius:50%;background:#fff;touch-action:none;cursor:grab;border:3px solid #fff}
 .tl{display:flex;gap:8px}.tb{flex:1;border:0;border-radius:14px;padding:8px 4px;background:var(--sb);color:var(--tx);font:inherit;font-size:20px;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer}.tb span{font-size:12px;font-weight:700}.tb.on{background:var(--on);color:var(--onc)}
@@ -88,7 +88,7 @@ h1,h2,p{margin:0}.dim{opacity:.85;text-align:center}.msg{text-align:center;min-h
 .msg:empty{display:none}
 @media(max-width:899px){.tb span{display:none}.dot{width:26px;height:26px}.tm{width:104px}#tn{font-size:22px;width:36px}}
 .stage{position:relative}
-#typed{position:absolute;left:10px;right:10px;bottom:10px;z-index:3;padding:10px 14px;border-radius:18px;font-size:26px;font-weight:800;text-align:center;background:var(--kbb);color:var(--kbc);box-shadow:0 6px 20px rgba(0,0,0,.3);overflow:hidden;white-space:nowrap;text-overflow:ellipsis;pointer-events:none}
+#typed{position:fixed;top:max(env(safe-area-inset-top),10px);left:12px;right:12px;z-index:70;padding:10px 14px;border-radius:18px;font-size:26px;font-weight:800;text-align:center;background:var(--kbb);color:var(--kbc);box-shadow:0 6px 20px rgba(0,0,0,.3);overflow:hidden;white-space:nowrap;text-overflow:ellipsis;pointer-events:none}
 #ftm{display:none;position:absolute;top:10px;right:10px;z-index:3;min-width:54px;padding:6px 12px;border-radius:16px;font-size:24px;font-weight:800;text-align:center;font-variant-numeric:tabular-nums;background:var(--kbb);color:var(--kbc)}
 #ftm.low{background:#ff453a;color:#fff}
 #play.fs .stage{position:fixed;left:0;right:0;top:0;bottom:var(--tb,260px);z-index:30;border-radius:0;border:0}
@@ -156,7 +156,7 @@ h1,h2,p{margin:0}.dim{opacity:.85;text-align:center}.msg{text-align:center;min-h
   <div class="glass top"><div class="badge" id="lt">あ</div><div id="rd">1ターン目</div><div id="wa"></div><div id="who"><span></span></div><div id="tm" class="tm"><span id="tn">30</span><div class="barw"><div id="bar"></div></div></div></div>
   <div class="pbody">
     <div id="plist" class="glass"></div>
-    <div class="glass stage"><div class="sq"><canvas id="cv"></canvas><img id="pic" alt=""><div id="ph"></div></div><div id="ftm"></div><div id="typed" hidden></div></div>
+    <div class="glass stage"><div class="sq"><canvas id="cv"></canvas><img id="pic" alt=""><div id="ph"></div></div><div id="ftm"></div></div>
     <div class="rcol">
       <div class="glass panel" id="panel">
         <div id="pw"><input id="win" class="in" placeholder="ひらがなで入力" autocomplete="off" enterkeyhint="send"><button class="btn" onclick="submitWord()">決定して絵をかく</button></div>
@@ -181,6 +181,7 @@ h1,h2,p{margin:0}.dim{opacity:.85;text-align:center}.msg{text-align:center;min-h
 
 <div id="crop" hidden><div class="glass card"><h2>アイコンを切り抜く</h2><canvas id="cc"></canvas><input id="cz" type="range" min="1" max="4" step=".01" value="1" style="width:256px"><p class="dim" style="font-size:13px">ドラッグで位置、スライダーで拡大</p><div class="row" style="width:100%"><button class="btn s" onclick="$('#crop').hidden=true">キャンセル</button><button class="btn" onclick="cok()">決定</button></div></div></div>
 <div id="err" hidden><div class="dlg"><div class="bd"><h3>通信エラー</h3><p>通信エラーが発生しました。<br>メニューにもどります。</p><small>エラーコード: ESIRI-001</small></div><div class="ft"><button onclick="toMenu()">OK</button></div></div></div>
+<div id="typed" hidden></div>
 <div id="toast" class="glass"></div>
 
 <script>
@@ -404,7 +405,7 @@ function setWho(id,t){const p=P.find(x=>x.id==id),w=$('#who'),sp=w.firstElementC
   $('#wa').replaceChildren(p?av(p,'sm'):'');sp.textContent=t;w.classList.remove('mq');
   requestAnimationFrame(()=>{const d=sp.scrollWidth-w.clientWidth;if(d>2){w.style.setProperty('--d',d+'px');w.style.setProperty('--t',Math.max(4,d/35)+'s');w.classList.add('mq')}})}
 /* ---------- 入力中の文字をステージに大きく表示 ---------- */
-['win','gin'].forEach(i=>{const e=$('#'+i);e.addEventListener('input',()=>{const t=$('#typed');t.textContent=e.value;t.hidden=!e.value})});
+['win','gin'].forEach(i=>{const e=$('#'+i);const sh=()=>{const t=$('#typed');t.textContent=e.value;t.hidden=!e.value};e.addEventListener('input',sh);e.addEventListener('focus',sh);e.addEventListener('blur',()=>{$('#typed').hidden=true})});
 /* ---------- LINE招待 ---------- */
 const roomUrl=()=>location.href.split(/[?#]/)[0]+'?room='+$('#rcode').textContent;
 const inviteText=()=>'えしりとりで一緒に遊ぼう！\nルームコード: '+$('#rcode').textContent+'\n'+roomUrl();
