@@ -339,6 +339,14 @@ window.addEventListener('DOMContentLoaded', () => {
   setFreq(localStorage.getItem('transceiver_freq') || 1234);
   trace(null, null, 40, 0, '#00ff66'); trace(null, null, 120, 0, '#ffb300'); updateCount();
 });
+  
+/* ===== プッシュ通知の準備 ===== */
+if ("serviceWorker" in navigator && "PushManager" in window) {
+  navigator.serviceWorker.register("./sw.js")
+    .then(() => console.log("通知機能の準備OK"))
+    .catch(err => console.error("通知準備エラー", err));
+}
+
 </script>
 </body>
 </html>
