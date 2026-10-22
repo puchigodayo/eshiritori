@@ -85,6 +85,10 @@ nav{gap:4px}
 .pr i{width:12px;height:12px;border-radius:50%;flex:none}
 .pr span{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .pr b{color:var(--dim);font-weight:400;font-size:12px;white-space:nowrap}
+.tabs{display:flex;gap:6px;margin:12px 0}
+.tab{flex:1}
+.tab.on{background:var(--sand);color:var(--on,#1a1710);border-color:var(--sand);font-weight:700}
+.bshare{position:sticky;bottom:-20px;background:var(--panel);border-top:1px solid var(--line);margin-top:14px;padding:10px 0 4px}
 #dBgm{max-height:88vh;overflow:auto}
 .lr{display:flex;gap:6px;margin-top:6px}
 .lr button{min-height:44px}
@@ -148,28 +152,44 @@ dialog::backdrop{background:#000a}
 </section>
 
 <dialog id="dBgm">
-  <h2 style="font:700 20px 'Shippori Mincho B1',serif;color:var(--sand)">BGM</h2>
-  <label for="bUrl">YouTube(曲名で検索、またはURL)</label>
-  <div class="row"><input id="bUrl" placeholder="曲名・アーティスト名、またはURL" autocomplete="off"><button id="bSearch" type="button">検索</button></div>
-  <div id="ysr"></div>
-  <div class="row" style="margin-top:12px"><button class="main" id="bPlay">再生</button><button id="bPause">一時停止</button><button id="bStop">停止</button></div>
-  <details style="margin-top:8px"><summary style="color:var(--dim);cursor:pointer;min-height:44px;display:flex;align-items:center">YouTube検索の設定</summary>
-    <label for="yKey">YouTube Data API v3 のキー(任意)</label><input id="yKey" placeholder="AIza..." autocomplete="off">
-    <p style="color:var(--dim);font-size:13px;margin-top:6px">未入力でも公開の検索サーバー経由で検索しますが、止まっていることがあります。確実に使うならキーを入れてください(無料枠で1日約100回検索できます)。</p></details>
-  <label for="bVol">音量</label><input type="range" id="bVol" min="0" max="100" value="30">
-  <label class="chk"><input type="checkbox" id="bLoop" checked>くり返す</label>
-  <label class="chk"><input type="checkbox" id="bDuck" checked>誰かが話している間は音量を下げる</label>
-  <label class="chk"><input type="checkbox" id="bListen" checked>他の人が流すBGMも聴く</label>
-  <hr style="border:0;border-top:1px solid var(--line);margin:18px 0 0">
-  <label for="bFile">自分の音声ファイル(全員に聞こえます)</label>
-  <input type="file" id="bFile" accept="audio/*,.mp3,.m4a,.wav,.flac,.ogg,.aac">
-  <audio id="aFile" controls class="hide" style="width:100%;margin-top:10px"></audio>
-  <button id="bFileOff" class="hide" type="button" style="margin-top:10px;width:100%">ファイルを外す</button>
-  <label>お気に入り(5つまで)</label><div id="favList"></div>
-  <label>履歴(10個まで)</label><div id="histList"></div>
-  <p id="bTitle" style="color:var(--dim);margin-top:12px;min-height:1.6em"></p>
-  <p style="color:var(--dim);font-size:13px">再生すると通話中の全員の端末で同時に流れます(音楽は各自の端末で再生され、音量は各自で調整できます)。スピーカーだとマイクに入るので、イヤホンがおすすめです。</p>
-  <div class="row" style="margin-top:16px"><button id="bClose">閉じる</button></div>
+  <div class="row" style="align-items:center;justify-content:space-between">
+    <h2 style="font:700 20px 'Shippori Mincho B1',serif;color:var(--sand)">BGM</h2>
+    <button id="bClose" type="button" style="flex:none;width:auto">閉じる</button>
+  </div>
+  <div class="tabs" role="tablist">
+    <button class="tab on" type="button" role="tab" data-t="tYt">YouTube</button>
+    <button class="tab" type="button" role="tab" data-t="tFl">音声ファイル</button>
+  </div>
+
+  <section id="tYt">
+    <label for="bUrl" style="margin-top:0">曲名で検索、またはURL</label>
+    <div class="row"><input id="bUrl" placeholder="曲名・アーティスト名、またはURL" autocomplete="off"><button id="bSearch" type="button">検索</button></div>
+    <div id="ysr"></div>
+    <div class="row" style="margin-top:12px"><button class="main" id="bPlay">再生</button><button id="bPause">一時停止</button><button id="bStop">停止</button></div>
+    <details style="margin-top:8px"><summary style="color:var(--dim);cursor:pointer;min-height:44px;display:flex;align-items:center">YouTube検索の設定</summary>
+      <label for="yKey">YouTube Data API v3 のキー(任意)</label><input id="yKey" placeholder="AIza..." autocomplete="off">
+      <p style="color:var(--dim);font-size:13px;margin-top:6px">未入力でも公開の検索サーバー経由で検索しますが、止まっていることがあります。確実に使うならキーを入れてください(無料枠で1日約100回検索できます)。</p></details>
+  </section>
+
+  <section id="tFl" class="hide">
+    <label for="bFile" style="margin-top:0">自分の音声ファイル(全員に聞こえます)</label>
+    <input type="file" id="bFile" accept="audio/*,.mp3,.m4a,.wav,.flac,.ogg,.aac">
+    <audio id="aFile" controls class="hide" style="width:100%;margin-top:10px"></audio>
+    <button id="bFileOff" class="hide" type="button" style="margin-top:10px;width:100%">ファイルを外す</button>
+    <label>お気に入り(5つまで)</label><div id="favList"></div>
+    <label>履歴(10個まで)</label><div id="histList"></div>
+  </section>
+
+  <div class="bshare">
+    <p id="bTitle" style="color:var(--dim);min-height:1.6em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></p>
+    <label for="bVol" style="margin-top:4px">音量</label><input type="range" id="bVol" min="0" max="100" value="30">
+    <details><summary style="color:var(--dim);cursor:pointer;min-height:44px;display:flex;align-items:center">オプション</summary>
+      <label class="chk"><input type="checkbox" id="bLoop" checked>くり返す</label>
+      <label class="chk"><input type="checkbox" id="bDuck" checked>誰かが話している間は音量を下げる</label>
+      <label class="chk"><input type="checkbox" id="bListen" checked>他の人が流すBGMも聴く</label>
+      <p style="color:var(--dim);font-size:13px;margin-top:10px">再生すると通話中の全員の端末で同時に流れます(音量は各自で調整できます)。スピーカーだとマイクに入るので、イヤホンがおすすめです。</p>
+    </details>
+  </div>
 </dialog>
 <div style="position:fixed;left:-9999px;top:0;width:200px;height:113px" aria-hidden="true"><div id="ytp"></div></div>
 <dialog id="dlg">
@@ -528,6 +548,9 @@ aFile.onplay=()=>{if(ready()&&yt.getPlayerState()===1){if(bgmOwner)sendBgm('stop
 setInterval(()=>{const d=$('#bDuck').checked&&document.querySelector('.tile.speaking:not(.self)'),v=+$('#bVol').value/100*(d?.35:1),mute=!$('#bListen').checked;
   Object.values(peers).forEach(p=>{if(p.music){p.music.volume=Math.min(1,v);p.music.muted=mute}});if(aGain)aGain.gain.value=v},300);
 
+// BGM画面のタブ切り替え
+document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('.tab').forEach(t=>{const on=t===b;t.classList.toggle('on',on);$('#'+t.dataset.t).classList.toggle('hide',!on)})});
 // 設定
 $('#bSet').onclick=async()=>{const d=await navigator.mediaDevices.enumerateDevices();
   const fill=(id,kind,cur)=>{$(id).innerHTML='<option value="">既定</option>'+d.filter(x=>x.kind===kind).map(x=>`<option value="${x.deviceId}"${x.deviceId===cur?' selected':''}>${x.label||kind}</option>`).join('')};
