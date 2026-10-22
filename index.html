@@ -1,428 +1,214 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>MILITARY TRANSCEIVER - AN/PRC-100 HI-FI</title>
-<script src="https://unpkg.com/peerjs@1.5.1/dist/peerjs.min.js"></script>
-<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>PMS通信</title>
+<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho+B1:wght@700&family=Zen+Kaku+Gothic+New:wght@400;700&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#0f120e;--panel:#232a20;--bd:#3b4737;--dark:#151a13;--green:#00ff66;--amber:#ffb300;--red:#ff3333;--tx:#d0ded0;--mute:#6b7a67}
-*{box-sizing:border-box;margin:0;padding:0;user-select:none;-webkit-user-select:none}
-body{background:var(--bg);color:var(--tx);font-family:'Courier New',monospace;height:100dvh;width:100vw;overflow:hidden;display:flex;justify-content:center}
-.app{width:100%;height:100%;max-width:500px;display:flex;flex-direction:column;background:var(--panel);border:0 solid var(--bd);border-width:0 2px;box-shadow:0 0 30px #000}
-.header{padding:12px 16px;display:flex;align-items:center;justify-content:space-between;background:var(--dark);border-bottom:2px solid var(--bd);letter-spacing:1px;flex-shrink:0}
-.header h1{font-size:1rem;display:flex;align-items:center;gap:6px}
-.st{display:flex;align-items:center;gap:10px}
-#user-count{font-size:.85rem;color:var(--amber);font-weight:bold}
-#quality{font-size:.65rem;color:var(--green);border:1px solid var(--green);padding:1px 5px;border-radius:3px;opacity:.4}
-#quality.on{opacity:1}
-.dot{width:12px;height:12px;border-radius:50%;background:var(--red);border:2px solid #000;box-shadow:0 0 4px var(--red);transition:.3s}
-.dot.on{background:var(--green);box-shadow:0 0 10px var(--green)}
-.display{padding:8px 14px;background:#080a07;border-bottom:2px solid var(--bd);position:relative;height:176px;flex-shrink:0;display:flex;align-items:center}
-canvas{width:100%;height:160px;background:#050d05;border:2px solid #2a3826;border-radius:4px;box-shadow:inset 0 0 15px rgba(0,255,102,.15)}
-.scope{position:absolute;top:14px;bottom:14px;left:20px;font-size:.65rem;font-weight:bold;opacity:.75;letter-spacing:2px;display:flex;flex-direction:column;justify-content:space-between;pointer-events:none}
-.rx{color:var(--green)}.tx{color:var(--amber)}
-.controls{padding:14px 16px;display:flex;flex-direction:column;gap:12px;flex-shrink:0}
-.freq{background:var(--dark);padding:10px 12px;border:2px solid var(--bd);border-radius:4px;display:flex;flex-direction:column;gap:6px}
-.freq-h{display:flex;justify-content:space-between;font-size:.75rem;color:var(--mute);font-weight:bold}
-.adj{display:flex;gap:10px;align-items:center}
-.btn-sm{background:#1a2118;border:1px solid var(--bd);color:var(--tx);width:44px;height:44px;border-radius:4px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 0 #000}
-.btn-sm:active:not(:disabled){transform:translateY(2px);box-shadow:none}
-.sel{flex:1;display:flex;align-items:center;background:#000;padding:4px 12px;border:1px solid var(--bd);height:44px}
-.sel input{width:100%;background:transparent;border:none;color:var(--amber);font-size:1.6rem;font-family:inherit;font-weight:bold;text-align:center;outline:none;-moz-appearance:textfield}
-.sel input::-webkit-outer-spin-button,.sel input::-webkit-inner-spin-button{-webkit-appearance:none}
-.bg{display:flex;gap:10px}
-.btn{flex:1;padding:12px;border:2px solid #1a1a1a;border-radius:4px;font-size:.95rem;font-weight:bold;font-family:inherit;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:inset 0 1px 0 rgba(255,255,255,.2),0 3px 0 #000}
-.btn-c{background:#384d31}.btn-c.active{background:#2e7d32;border-color:var(--green)}.btn-d{background:#4a3333}
-.btn-notify{width:100%;padding:10px 12px;border:1px solid var(--bd);border-radius:4px;background:#1a2118;color:var(--tx);font-size:.85rem;font-weight:bold;font-family:inherit;cursor:pointer}
-.btn-notify:disabled{opacity:.6;cursor:default}
-#notify-status{font-size:.72rem;color:var(--mute);text-align:center;line-height:1.4}
-
-.btn:active:not(:disabled){transform:translateY(2px);box-shadow:0 1px 0 #000}
-.btn:disabled,.ptt:disabled,.hf:disabled{background:#222621;color:#4d544c;border-color:#1a1d19;box-shadow:none;cursor:not-allowed;transform:none}
-.ptt-c{padding:14px 16px 20px;display:flex;background:var(--dark);border-top:2px solid var(--bd);flex:1;min-height:100px}
-.pw{display:flex;gap:12px;width:100%}
-.ptt{flex:1;min-height:90px;border-radius:8px;background:linear-gradient(180deg,#4a5d35,#2f3d20);border:6px solid #1a1d18;box-shadow:0 6px 0 #0d0f0c,inset 0 3px 8px rgba(255,255,255,.15);color:#fff;font-size:1.2rem;font-weight:bold;font-family:inherit;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;text-shadow:0 2px 2px #000;letter-spacing:2px;touch-action:none}
-.ptt .material-icons{font-size:3rem}
-.ptt.active{transform:translateY(6px);box-shadow:inset 0 6px 12px rgba(0,0,0,.7);background:linear-gradient(180deg,#384728,#1d2613);color:var(--amber)}
-.hf{width:70px;border-radius:8px;background:linear-gradient(180deg,#3a3f36,#1f221c);border:5px solid #151713;box-shadow:0 5px 0 #0d0f0c;color:var(--mute);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center}
-.hf .material-icons{font-size:2.2rem}.hf .l{font-size:.6rem;font-weight:bold;letter-spacing:1px}
-.hf.active{background:linear-gradient(180deg,#b37d00,#805900);color:#fff;box-shadow:inset 0 5px 10px rgba(0,0,0,.8);transform:translateY(5px);border-color:#332400}
-#toasts{position:fixed;top:16px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;gap:8px;z-index:9999;pointer-events:none;width:320px;max-width:calc(100vw - 32px)}
-.toast{background:rgba(18,24,16,.95);padding:12px 16px;border-radius:4px;border:1px solid var(--bd);border-left:5px solid var(--amber);font-size:.9rem;animation:in .3s,out .3s 2.7s forwards;display:flex;gap:10px;align-items:center}
-.toast.error{border-left-color:var(--red)}
-@keyframes in{from{opacity:0;transform:translateY(-20px)}}
-@keyframes out{to{opacity:0}}
+:root{--ink:#0f1519;--panel:#172027;--line:#2a3640;--sand:#d6c7a1;--txt:#e9e4d6;--dim:#8d9aa3;--ok:#6fc2b0;--bad:#e0553f;color-scheme:dark}
+*{box-sizing:border-box;margin:0}
+html,body{height:100%}
+body{background:var(--ink);color:var(--txt);font:400 15px/1.6 "Zen Kaku Gothic New",system-ui,sans-serif;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 16px;min-height:44px}
+button:hover{border-color:var(--sand)}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--sand);outline-offset:2px}
+button.main{background:var(--sand);color:#1a1710;border-color:var(--sand);font-weight:700}
+button.off{background:var(--bad);border-color:var(--bad);color:#fff}
+button.on{border-color:var(--ok);color:var(--ok)}
+input,select{background:#0b1013;border:1px solid var(--line);border-radius:8px;padding:10px 12px;width:100%;min-height:44px}
+h1{font:700 clamp(40px,9vw,72px)/1.1 "Shippori Mincho B1",serif;color:var(--sand);letter-spacing:.06em}
+label{display:block;color:var(--dim);font-size:13px;margin:14px 0 6px}
+.hide{display:none!important}
+#lobby{min-height:100%;display:grid;align-content:center;max-width:520px;margin:0 auto;padding:28px 20px}
+#lobby p.lead{color:var(--dim);margin:12px 0 28px}
+.row{display:flex;gap:10px}.row>*{flex:1}.row>input{flex:2}
+.or{color:var(--dim);text-align:center;margin:20px 0 0;font-size:13px}
+#room{height:100%;display:flex;flex-direction:column}
+header{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+header b{font:700 22px "Shippori Mincho B1",serif;color:var(--sand);letter-spacing:.08em}
+#hud{margin-left:auto;font-size:13px;color:var(--dim)}
+#hud i{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--ok);margin-right:6px}
+#grid{flex:1;overflow:auto;padding:12px;display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));align-content:center}
+.tile{position:relative;aspect-ratio:16/9;background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:hidden;display:grid;place-items:center}
+.tile.speaking{outline:3px solid var(--ok);outline-offset:-3px}
+.tile video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:#000}
+.tile.self video{transform:scaleX(-1)}
+.tile.screen{grid-column:1/-1;aspect-ratio:16/9;max-height:64vh;justify-self:center;width:100%}
+.tile.screen video{object-fit:contain}
+.av{font:700 56px "Shippori Mincho B1",serif;color:var(--sand)}
+.nm{position:absolute;left:10px;bottom:8px;background:#0009;padding:2px 10px;border-radius:6px;font-size:13px}
+.nm.mu::after{content:" ・ミュート";color:var(--bad)}
+nav{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;padding:12px;border-top:1px solid var(--line)}
+dialog{background:var(--panel);color:var(--txt);border:1px solid var(--line);border-radius:12px;padding:20px;width:min(440px,92vw);margin:auto}
+dialog::backdrop{background:#000a}
+.chk{display:flex;gap:10px;align-items:center;margin-top:10px;color:var(--txt)}.chk input{width:auto;min-height:0}
+#toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:var(--sand);color:#1a1710;padding:10px 18px;border-radius:8px;font-weight:700;z-index:9}
+@media (prefers-reduced-motion:no-preference){.tile{transition:outline-color .1s}}
 </style>
 </head>
 <body>
-<div id="toasts"></div>
-<div class="app">
-  <div class="header">
-    <h1><span class="material-icons" style="font-size:1.2rem;color:var(--amber)">radar</span> AN/PRC-100 COMM</h1>
-    <div class="st"><span id="quality">OPUS 128k</span><span id="user-count">USERS: 0</span><div id="dot" class="dot"></div></div>
-  </div>
-  <div class="display">
-    <div class="scope"><div class="rx">RX (相手)</div><div class="tx">TX (自分)</div></div>
-    <canvas id="wave"></canvas>
-  </div>
-  <div class="controls">
-    <div class="freq">
-      <div class="freq-h"><span>FREQUENCY CONTROL</span><span style="color:var(--amber)">MHz</span></div>
-      <div class="adj">
-        <button id="fd" class="btn-sm"><span class="material-icons">remove</span></button>
-        <div class="sel"><span class="material-icons" style="color:var(--mute);font-size:1.3rem">tune</span><input type="number" id="freq" min="1" max="10000" value="1234"></div>
-        <button id="fu" class="btn-sm"><span class="material-icons">add</span></button>
-      </div>
-    </div>
-    <div class="bg">
-      <button id="bc" class="btn btn-c"><span class="material-icons">settings_input_antenna</span> 接続</button>
-      <button id="bd" class="btn btn-d" disabled><span class="material-icons">power_off</span> 切断</button>
-    </div>
-    <button id="notify-enable" class="btn-notify" type="button">通知を有効にする</button>
-    <div id="notify-status" role="status">通知は未設定です</div>
-  </div>
-  <div class="ptt-c"><div class="pw">
-    <button id="ptt" class="ptt" disabled><span class="material-icons">mic</span>PUSH TO TALK</button>
-    <button id="hf" class="hf" disabled title="常時送信(ハンズフリー)"><span class="material-icons">lock</span><span class="l">LOCK</span></button>
-  </div></div>
-</div>
 
+<section id="lobby">
+  <h1>PMS通信</h1>
+  <p class="lead">少人数向けの通話・ビデオ・画面共有。映像と音声は端末同士で直接つながり、暗号化されます。</p>
+  <label for="name">name</label>
+  <input id="name" maxlength="16" placeholder="例:Taro" autocomplete="off">
+  <div style="margin-top:20px"><button class="main" id="create" style="width:100%">新しい回線を開く</button></div>
+  <p class="or">受け取った回線コードがある場合</p>
+  <label for="code">回線コード</label>
+  <div class="row"><input id="code" maxlength="8" placeholder="ABC123" autocomplete="off" style="text-transform:uppercase"><button id="join">入る</button></div>
+</section>
+
+<section id="room" class="hide">
+  <header>
+    <b id="rcode"></b>
+    <button id="copy">リンクをコピー</button>
+    <span id="hud"><i></i>接続待ち</span>
+  </header>
+  <main id="grid"></main>
+  <nav>
+    <button id="bMic" class="on">マイク</button>
+    <button id="bCam">カメラ</button>
+    <button id="bScr">画面共有</button>
+    <button id="bLine" class="main">LINEで呼ぶ</button>
+    <button id="bSet">設定</button>
+    <button id="bLeave" class="off">退出</button>
+  </nav>
+</section>
+
+<dialog id="dlg">
+  <h2 style="font:700 20px 'Shippori Mincho B1',serif;color:var(--sand)">設定</h2>
+  <label>マイク</label><select id="sMic"></select>
+  <label>カメラ</label><select id="sCam"></select>
+  <label>スピーカー</label><select id="sSpk"></select>
+  <div class="row">
+    <div><label>映像の解像度</label><select id="sRes"><option value="720">720p</option><option value="1080" selected>1080p</option><option value="1440">1440p</option></select></div>
+    <div><label>フレームレート</label><select id="sFps"><option>30</option><option>60</option></select></div>
+    <div><label>映像の上限</label><select id="sBr"><option value="2000">2 Mbps</option><option value="4000" selected>4 Mbps</option><option value="8000">8 Mbps</option></select></div>
+  </div>
+  <label class="chk"><input type="checkbox" id="cEcho" checked>エコー除去(ヘッドホン使用時はオフで高音質)</label>
+  <label class="chk"><input type="checkbox" id="cNs" checked>ノイズ除去</label>
+  <label class="chk"><input type="checkbox" id="cAgc">音量の自動調整</label>
+  <div class="row" style="margin-top:20px"><button class="main" id="sOk">適用して閉じる</button></div>
+</dialog>
+
+<script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <script>
-const PREFIX = "nanj-radio-mesh-v2-freq-";
+const $=s=>document.querySelector(s),PFX='betsuhan-v1-',AL='ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+const RES={720:[1280,720],1080:[1920,1080],1440:[2560,1440]};
+const cfg={mic:'',cam:'',spk:'',res:1080,fps:30,br:4000,echo:true,ns:true,agc:false};
+let peer,myId,code,host=false,myName='',peers={},local={mic:null,cam:null,screen:null},muted=false,watch=[],actx;
 
-/* ===== 音質設定 ===== */
-const AUDIO = {
-  bitrate: 128000,   // Opus 上限 (モノラル音声は128kbpsでほぼ透過)
-  jitterMs: 40,      // 受信ジッタバッファ目標(ms)。小さいほど低遅延
-};
+const toast=t=>{const e=document.createElement('div');e.id='toast';e.textContent=t;document.body.append(e);setTimeout(()=>e.remove(),2600)};
+const roomLink=()=>location.origin+location.pathname+'#'+code;
+const gen=()=>Array.from({length:6},()=>AL[Math.random()*AL.length|0]).join('');
+const audioC=()=>({deviceId:cfg.mic?{exact:cfg.mic}:undefined,echoCancellation:cfg.echo,noiseSuppression:cfg.ns,autoGainControl:cfg.agc,channelCount:1,sampleRate:48000,latency:0.01});
 
-let peer = null, txStream = null, rawStream = null;
-let isHandsFree = false, pttHeld = false, connected = false;
-const peers = new Map(); // id -> {data, call, src, el}
+// Opus設定:FEC有効・DTX無効・高ビットレート
+function opus(stereo){return sdp=>{const m=sdp.match(/a=rtpmap:(\d+) opus\/48000/);if(!m)return sdp;
+  return sdp.replace(new RegExp('a=fmtp:'+m[1]+' .*'),'a=fmtp:'+m[1]+' minptime=10;useinbandfec=1;usedtx=0;stereo='+(stereo?1:0)+';sprop-stereo='+(stereo?1:0)+';maxaveragebitrate='+(stereo?192000:128000)+';maxplaybackrate=48000')}}
 
-let ctx = null, txGate, txAnalyser, rxBus, rxAnalyser, rxData, txData, raf = null;
-const $ = id => document.getElementById(id);
-const canvas = $('wave'), c2 = canvas.getContext('2d');
-const freqInput = $('freq'), bc = $('bc'), bd = $('bd'), ptt = $('ptt'), hf = $('hf');
-
-const notifyButton = $('notify-enable');
-const notifyStatus = $('notify-status');
-let notificationRegistration = null;
-
-/* ===== 通知機能の準備 =====
-   この処理はService Workerの登録と通知許可までを行う。
-   実際にページを閉じていてもPush通知を送るには、別途Push購読登録と
-   Web Push対応バックエンドの実装が必要。
-*/
-async function setupNotifications() {
-  if (!('serviceWorker' in navigator)) {
-    notifyStatus.textContent = 'このブラウザはService Workerに対応していません';
-    toast('このブラウザでは通知機能を利用できません', true);
-    return;
-  }
-  if (!('Notification' in window) || !('PushManager' in window)) {
-    notifyStatus.textContent = 'このブラウザはWeb Push通知に対応していません';
-    toast('Web Push通知に対応していません', true);
-    return;
-  }
-  if (!window.isSecureContext) {
-    notifyStatus.textContent = 'HTTPSの公開URLで開いてください';
-    toast('通知にはHTTPS接続が必要です', true);
-    return;
-  }
-
-  notifyButton.disabled = true;
-  notifyButton.textContent = '通知を設定中...';
-  try {
-    notificationRegistration = await navigator.serviceWorker.register('./sw.js');
-    await navigator.serviceWorker.ready;
-
-    let permission = Notification.permission;
-    if (permission === 'default') {
-      permission = await Notification.requestPermission();
-    }
-
-    if (permission === 'granted') {
-      notifyStatus.textContent = '通知の許可済み（Push配信サーバーの設定は未完了）';
-      notifyButton.textContent = '通知の許可済み';
-      toast('通知の許可が完了しました');
-    } else {
-      notifyStatus.textContent = '通知が許可されていません。ブラウザ設定を確認してください';
-      notifyButton.textContent = '通知を再設定';
-      toast('通知が許可されませんでした', true);
-    }
-  } catch (err) {
-    console.error('通知設定エラー:', err);
-    notifyStatus.textContent = '通知の設定に失敗しました。公開URLと sw.js を確認してください';
-    notifyButton.textContent = '通知を再設定';
-    toast('通知の設定に失敗しました', true);
-  } finally {
-    notifyButton.disabled = false;
-  }
+async function enter(create){
+  myName=$('#name').value.trim()||'名無し';
+  code=create?gen():$('#code').value.trim().toUpperCase();
+  if(!code)return toast('回線コードを入力してください');
+  try{local.mic=await navigator.mediaDevices.getUserMedia({audio:audioC()})}catch(e){return toast('マイクの使用を許可してください')}
+  const opt={config:{iceServers:[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun1.l.google.com:19302'}]}};
+  host=create;peer=create?new Peer(PFX+code,opt):new Peer(opt);
+  peer.on('open',id=>{myId=id;showRoom();if(!create)link(PFX+code)});
+  peer.on('connection',onData);
+  peer.on('call',onCall);
+  peer.on('error',e=>{
+    if(e.type==='unavailable-id'&&create){peer.destroy();local.mic.getTracks().forEach(t=>t.stop());return enter(true)}
+    if(e.type==='peer-unavailable'){toast('その回線は見つかりません');return leave()}
+    if(e.type!=='disconnected')toast('接続エラー:'+e.type)});
 }
-
-notifyButton.addEventListener('click', setupNotifications);
-
-async function initNotificationStatus() {
-  if (!('serviceWorker' in navigator) || !('Notification' in window)) {
-    notifyStatus.textContent = 'このブラウザでは通知を利用できません';
-    notifyButton.disabled = true;
-    return;
-  }
-  try {
-    if (Notification.permission === 'granted') {
-      notifyStatus.textContent = '通知の許可済み（Push配信サーバーの設定は未完了）';
-      notifyButton.textContent = '通知の許可済み';
-    } else if (Notification.permission === 'denied') {
-      notifyStatus.textContent = '通知がブロックされています。ブラウザ設定で許可してください';
-      notifyButton.textContent = '通知がブロック中';
-    }
-  } catch (e) {
-    console.warn('通知状態の確認に失敗:', e);
-  }
+function showRoom(){
+  $('#lobby').classList.add('hide');$('#room').classList.remove('hide');$('#rcode').textContent='回線 '+code;
+  history.replaceState(null,'','#'+code);
+  const t=mkTile('self',myName+'(自分)');t.el.classList.add('self');watchStream(local.mic,t.el);
 }
-
-/* ===== Opus SDP チューニング(送受信双方で適用) ===== */
-function tuneSdp(sdp) {
-  const m = sdp.match(/a=rtpmap:(\d+) opus\/48000\/2/);
-  if (!m) return sdp;
-  const pt = m[1];
-  const params = 'minptime=10;useinbandfec=1;usedtx=0;cbr=0;stereo=0;sprop-stereo=0;' +
-    'maxaveragebitrate=' + AUDIO.bitrate + ';maxplaybackrate=48000;sprop-maxcapturerate=48000';
-  const re = new RegExp('a=fmtp:' + pt + ' .*');
-  return re.test(sdp) ? sdp.replace(re, 'a=fmtp:' + pt + ' ' + params)
-                      : sdp.replace(m[0], m[0] + '\r\na=fmtp:' + pt + ' ' + params);
+function link(id){if(peers[id]||id===myId)return;onData(peer.connect(id,{reliable:true}))}
+function ensure(id){return peers[id]||(peers[id]={id,name:'…',out:{},inc:{},...mkTile(id,'…')})}
+function onData(c){const id=c.peer;
+  c.on('open',()=>{const p=ensure(id);p.data=c;c.send({t:'hello',name:myName,mute:muted});['mic','cam','screen'].forEach(k=>local[k]&&callTo(id,k,local[k]))});
+  c.on('data',m=>{const p=ensure(id);
+    if(m.t==='hello'){p.name=m.name;p.nm.textContent=m.name;p.av.textContent=[...m.name][0];p.nm.classList.toggle('mu',!!m.mute);
+      if(host)c.send({t:'roster',ids:Object.keys(peers).filter(x=>x!==id)})}
+    if(m.t==='roster')m.ids.forEach(link);
+    if(m.t==='st')p.nm.classList.toggle('mu',!!m.mute)});
+  c.on('close',()=>drop(id));c.on('error',()=>drop(id));
 }
+function callTo(id,kind,stream){const p=ensure(id);if(p.out[kind])return;
+  const c=peer.call(id,stream,{metadata:{kind},sdpTransform:opus(kind==='screen')});p.out[kind]=c;
+  c.on('close',()=>delete p.out[kind]);[600,2500].forEach(d=>setTimeout(()=>tune(c,kind),d))}
+function tune(c,kind){try{c.peerConnection.getSenders().forEach(async s=>{if(!s.track)return;
+  const q=s.getParameters();if(!q.encodings||!q.encodings.length)q.encodings=[{}];const e=q.encodings[0];
+  if(s.track.kind==='audio'){e.maxBitrate=kind==='screen'?192000:128000;e.priority='high';e.networkPriority='high'}
+  else{e.maxBitrate=cfg.br*1000*(kind==='screen'?2:1);e.maxFramerate=cfg.fps;q.degradationPreference=kind==='screen'?'maintain-resolution':'maintain-framerate'}
+  try{await s.setParameters(q)}catch(_){}})}catch(_){}}
+function onCall(c){const kind=c.metadata.kind,p=ensure(c.peer);c.answer(undefined,{sdpTransform:opus(kind==='screen')});p.inc[kind]=c;
+  c.on('stream',s=>{try{c.peerConnection.getReceivers().forEach(r=>r.jitterBufferTarget=kind==='mic'?20:0)}catch(_){}
+    if(kind==='mic'){const a=new Audio();a.autoplay=true;a.srcObject=s;if(cfg.spk&&a.setSinkId)a.setSinkId(cfg.spk).catch(()=>{});p.audio=a;watchStream(s,p.el)}
+    if(kind==='cam'){p.vid.srcObject=s;p.vid.hidden=false}
+    if(kind==='screen'){const t=mkTile(c.peer+':s',p.name+' の画面');t.el.classList.add('screen');t.av.remove();t.vid.hidden=false;t.vid.muted=false;t.vid.srcObject=s;p.scr=t.el;$('#grid').prepend(t.el)}});
+  c.on('close',()=>{delete p.inc[kind];if(kind==='cam')p.vid.hidden=true;if(kind==='screen'&&p.scr){p.scr.remove();p.scr=null}})}
+function drop(id){const p=peers[id];if(!p)return;Object.values(p.out).concat(Object.values(p.inc)).forEach(c=>c.close());
+  p.el.remove();p.scr&&p.scr.remove();p.audio&&(p.audio.srcObject=null);delete peers[id]}
+function mkTile(id,name){const el=document.createElement('div');el.className='tile';
+  el.innerHTML='<video autoplay playsinline muted hidden></video><span class="av"></span><span class="nm"></span>';
+  const r={el,vid:el.children[0],av:el.children[1],nm:el.children[2]};r.nm.textContent=name;r.av.textContent=[...name][0]||'?';$('#grid').append(el);
+  if(id==='self')peers.self=Object.assign(peers.self||{},r);return r}
+function watchStream(s,el){actx=actx||new AudioContext();const an=actx.createAnalyser();an.fftSize=512;actx.createMediaStreamSource(s).connect(an);watch.push({an,el,buf:new Uint8Array(an.fftSize)})}
+setInterval(()=>watch.forEach(w=>{w.an.getByteTimeDomainData(w.buf);let m=0;for(const v of w.buf)m=Math.max(m,Math.abs(v-128));w.el.classList.toggle('speaking',m>14&&!(w.el.classList.contains('self')&&muted))}),100);
 
-/* 送信ビットレート固定・優先度UP・受信ジッタバッファ最小化 */
-function tuneRtc(pc) {
-  if (!pc) return;
-  pc.getSenders().forEach(s => {
-    if (!s.track || s.track.kind !== 'audio') return;
-    const p = s.getParameters();
-    if (!p.encodings || !p.encodings.length) p.encodings = [{}];
-    p.encodings[0].maxBitrate = AUDIO.bitrate;
-    p.encodings[0].priority = 'high';
-    p.encodings[0].networkPriority = 'high';
-    s.setParameters(p).catch(() => {});
-  });
-  pc.getReceivers().forEach(r => {
-    try {
-      if ('jitterBufferTarget' in r) r.jitterBufferTarget = AUDIO.jitterMs;
-      else if ('playoutDelayHint' in r) r.playoutDelayHint = AUDIO.jitterMs / 1000;
-    } catch (e) {}
-  });
-}
+// 操作
+function broadcast(m){Object.values(peers).forEach(p=>p.data&&p.data.open&&p.data.send(m))}
+function sendKind(k,s){Object.keys(peers).forEach(id=>id!=='self'&&callTo(id,k,s))}
+function stopKind(k){const s=local[k];if(!s)return;s.getTracks().forEach(t=>t.stop());Object.values(peers).forEach(p=>p.out&&p.out[k]&&p.out[k].close());local[k]=null}
+$('#bMic').onclick=e=>{muted=!muted;local.mic.getAudioTracks().forEach(t=>t.enabled=!muted);e.target.classList.toggle('off',muted);e.target.classList.toggle('on',!muted);e.target.textContent=muted?'ミュート中':'マイク';peers.self.nm.classList.toggle('mu',muted);broadcast({t:'st',mute:muted})};
+async function camOn(){const[w,h]=RES[cfg.res];
+  try{local.cam=await navigator.mediaDevices.getUserMedia({video:{deviceId:cfg.cam?{exact:cfg.cam}:undefined,width:{ideal:w},height:{ideal:h},frameRate:{ideal:cfg.fps}}})}catch(e){return toast('カメラを使用できません')}
+  local.cam.getVideoTracks()[0].contentHint='motion';const s=peers.self;s.vid.srcObject=local.cam;s.vid.hidden=false;sendKind('cam',local.cam);$('#bCam').classList.add('on')}
+function camOff(){stopKind('cam');peers.self.vid.hidden=true;$('#bCam').classList.remove('on')}
+$('#bCam').onclick=()=>local.cam?camOff():camOn();
+$('#bScr').onclick=async()=>{
+  if(local.screen){stopKind('screen');$('#bScr').classList.remove('on');return}
+  const[w,h]=RES[cfg.res];
+  try{local.screen=await navigator.mediaDevices.getDisplayMedia({video:{width:{ideal:w},height:{ideal:h},frameRate:{ideal:cfg.fps}},audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false,channelCount:2,sampleRate:48000},systemAudio:'include'})}catch(e){return}
+  local.screen.getVideoTracks()[0].contentHint='detail';local.screen.getVideoTracks()[0].onended=()=>{stopKind('screen');$('#bScr').classList.remove('on')};
+  sendKind('screen',local.screen);$('#bScr').classList.add('on')};
+$('#bLine').onclick=()=>{const t='【PMS通信】回線コード '+code+' に入ってください\n'+roomLink();
+  if(location.protocol==='file:')toast('リンクを使うにはWebに公開して開いてください');
+  window.open('https://line.me/R/share?text='+encodeURIComponent(t),'_blank')};
+$('#copy').onclick=()=>navigator.clipboard.writeText(roomLink()).then(()=>toast('リンクをコピーしました'));
+function leave(){Object.keys(peers).forEach(id=>id!=='self'&&drop(id));['mic','cam','screen'].forEach(stopKind);peer&&peer.destroy();location.hash='';location.reload()}
+$('#bLeave').onclick=leave;
 
-/* ===== オーディオ処理チェーン ===== */
-function node(type, set) { const n = ctx.createDynamicsCompressor(); return n; }
+// 設定
+$('#bSet').onclick=async()=>{const d=await navigator.mediaDevices.enumerateDevices();
+  const fill=(id,kind,cur)=>{$(id).innerHTML='<option value="">既定</option>'+d.filter(x=>x.kind===kind).map(x=>`<option value="${x.deviceId}"${x.deviceId===cur?' selected':''}>${x.label||kind}</option>`).join('')};
+  fill('#sMic','audioinput',cfg.mic);fill('#sCam','videoinput',cfg.cam);fill('#sSpk','audiooutput',cfg.spk);$('#dlg').showModal()};
+$('#sOk').onclick=async()=>{Object.assign(cfg,{mic:$('#sMic').value,cam:$('#sCam').value,spk:$('#sSpk').value,res:+$('#sRes').value,fps:+$('#sFps').value,br:+$('#sBr').value,echo:$('#cEcho').checked,ns:$('#cNs').checked,agc:$('#cAgc').checked});
+  $('#dlg').close();
+  try{const n=await navigator.mediaDevices.getUserMedia({audio:audioC()});const nt=n.getAudioTracks()[0];nt.enabled=!muted;
+    Object.values(peers).forEach(p=>p.out&&p.out.mic&&p.out.mic.peerConnection.getSenders().forEach(s=>s.track&&s.track.kind==='audio'&&s.replaceTrack(nt)));
+    local.mic.getTracks().forEach(t=>t.stop());local.mic=n;watchStream(n,peers.self.el)}catch(e){toast('マイクを切り替えられません')}
+  Object.values(peers).forEach(p=>p.audio&&p.audio.setSinkId&&cfg.spk&&p.audio.setSinkId(cfg.spk).catch(()=>{}));
+  if(local.cam){camOff();camOn()}};
 
-async function initAudio() {
-  if (txStream) { if (ctx.state === 'suspended') ctx.resume(); return true; }
-  try {
-    rawStream = await navigator.mediaDevices.getUserMedia({ audio: {
-      echoCancellation: true, noiseSuppression: true, autoGainControl: true,
-      channelCount: 1, sampleRate: 48000, sampleSize: 16, latency: 0.01
-    }, video: false });
-  } catch (e) { toast("マイクアクセスの許可が必要です", true); return false; }
+// 回線状態(遅延・パケットロス)
+setInterval(async()=>{let rtt=null,loss=0;
+  for(const p of Object.values(peers)){const c=p.out&&p.out.mic;if(!c||!c.peerConnection)continue;
+    (await c.peerConnection.getStats()).forEach(r=>{if(r.type==='candidate-pair'&&r.nominated&&r.currentRoundTripTime!=null)rtt=Math.max(rtt||0,r.currentRoundTripTime*1000);
+      if(r.type==='remote-inbound-rtp'&&r.kind==='audio'&&r.fractionLost!=null)loss=Math.max(loss,r.fractionLost*100)})}
+  const h=$('#hud');if(rtt===null){h.innerHTML='<i></i>相手を待っています';return}
+  const bad=rtt>150||loss>5;h.innerHTML=`<i style="background:${bad?'var(--bad)':'var(--ok)'}"></i>遅延 ${rtt.toFixed(0)}ms ・ 損失 ${loss.toFixed(1)}%`},2000);
 
-  ctx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 48000, latencyHint: 'interactive' });
-  if (ctx.state === 'suspended') await ctx.resume();
-
-  // --- 送信: マイク → HPF → 明瞭度EQ → コンプ → リミッタ → ゲート(PTT) → 送信 ---
-  const src = ctx.createMediaStreamSource(rawStream);
-  const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 80; hp.Q.value = 0.7;
-  const pres = ctx.createBiquadFilter(); pres.type = 'peaking'; pres.frequency.value = 3200; pres.Q.value = 0.9; pres.gain.value = 2;
-  const air = ctx.createBiquadFilter(); air.type = 'highshelf'; air.frequency.value = 9000; air.gain.value = 1.5;
-  const comp = ctx.createDynamicsCompressor();
-  comp.threshold.value = -26; comp.knee.value = 18; comp.ratio.value = 3; comp.attack.value = 0.005; comp.release.value = 0.16;
-  const makeup = ctx.createGain(); makeup.gain.value = 1.4;
-  const lim = ctx.createDynamicsCompressor();
-  lim.threshold.value = -3; lim.knee.value = 0; lim.ratio.value = 20; lim.attack.value = 0.001; lim.release.value = 0.05;
-  txGate = ctx.createGain(); txGate.gain.value = 0;
-  txAnalyser = ctx.createAnalyser(); txAnalyser.fftSize = 1024;
-  const dest = ctx.createMediaStreamDestination();
-  src.connect(hp); hp.connect(pres); pres.connect(air); air.connect(comp); comp.connect(makeup);
-  makeup.connect(lim); lim.connect(txGate); txGate.connect(txAnalyser); txGate.connect(dest);
-  txStream = dest.stream;
-  txStream.getAudioTracks().forEach(t => { if ('contentHint' in t) t.contentHint = 'speech'; });
-
-  // --- 受信: 全員をミックス → ソフトリミッタ → 出力 ---
-  rxBus = ctx.createGain(); rxBus.gain.value = 1;
-  const rxLim = ctx.createDynamicsCompressor();
-  rxLim.threshold.value = -6; rxLim.knee.value = 6; rxLim.ratio.value = 12; rxLim.attack.value = 0.003; rxLim.release.value = 0.1;
-  rxAnalyser = ctx.createAnalyser(); rxAnalyser.fftSize = 1024;
-  rxBus.connect(rxLim); rxLim.connect(rxAnalyser); rxAnalyser.connect(ctx.destination);
-  rxData = new Uint8Array(rxAnalyser.fftSize); txData = new Uint8Array(txAnalyser.fftSize);
-  if (!raf) draw();
-  return true;
-}
-
-function setTx(on) { if (txGate) txGate.gain.setTargetAtTime(on ? 1 : 0, ctx.currentTime, 0.012); }
-
-function attachRemote(id, stream) {
-  const e = peers.get(id); if (!e || e.src) return;
-  // Chrome対策: MediaStreamをメディア要素に接続しないとWebAudioに流れない(ミュートで無音再生)
-  e.el = new Audio(); e.el.srcObject = stream; e.el.muted = true; e.el.play().catch(() => {});
-  e.src = ctx.createMediaStreamSource(stream);
-  e.src.connect(rxBus);
-}
-
-/* ===== メッシュ接続 ===== */
-function ensure(id) { if (!peers.has(id)) peers.set(id, {}); return peers.get(id); }
-
-function setupData(conn) {
-  const id = conn.peer, e = ensure(id);
-  if (e.data && e.data !== conn) { try { e.data.close(); } catch (x) {} }
-  e.data = conn;
-  const ready = () => { conn.send({ type: 'peers', list: [...peers.keys()].filter(k => k !== id) }); updateCount(); };
-  conn.open ? ready() : conn.on('open', ready);
-  conn.on('data', m => {
-    if (m && m.type === 'peers') m.list.forEach(p => { if (p !== peer.id && !peers.has(p)) connectTo(p); });
-  });
-  conn.on('close', () => removePeer(id));
-  conn.on('error', () => removePeer(id));
-}
-
-function setupCall(call) {
-  const id = call.peer, e = ensure(id);
-  e.call = call;
-  call.on('stream', s => { attachRemote(id, s); tuneRtc(call.peerConnection); setTimeout(() => tuneRtc(call.peerConnection), 1500); updateCount(); });
-  call.on('close', () => removePeer(id));
-  call.on('error', () => removePeer(id));
-}
-
-function connectTo(id) {
-  ensure(id);
-  setupData(peer.connect(id, { reliable: true }));
-  setupCall(peer.call(id, txStream, { sdpTransform: tuneSdp }));
-}
-
-function removePeer(id) {
-  const e = peers.get(id); if (!e) return;
-  peers.delete(id);
-  try { e.src && e.src.disconnect(); } catch (x) {}
-  if (e.el) { e.el.srcObject = null; }
-  try { e.call && e.call.close(); } catch (x) {}
-  try { e.data && e.data.close(); } catch (x) {}
-  updateCount();
-}
-
-function bindPeer() {
-  peer.on('connection', conn => setupData(conn));
-  peer.on('call', call => { call.answer(txStream, { sdpTransform: tuneSdp }); setupCall(call); });
-}
-
-function connectToMesh(hostId) {
-  if (peer) peer.destroy();
-  peer = new Peer();
-  let joined = false;
-  peer.on('open', () => {
-    bindPeer();
-    const dc = peer.connect(hostId, { reliable: true });
-    ensure(hostId);
-    dc.on('open', () => {
-      joined = true;
-      toast("周波数 " + freqInput.value + " MHz に同期しました");
-      uiConnected();
-      setupData(dc);
-      setupCall(peer.call(hostId, txStream, { sdpTransform: tuneSdp }));
-    });
-  });
-  peer.on('error', err => {
-    if (err.type === 'peer-unavailable' && !joined) { peers.delete(hostId); becomeHost(hostId); }
-    else if (!joined || err.type === 'network') { toast("接続エラー: " + err.type, true); resetUI(); }
-  });
-}
-
-function becomeHost(hostId) {
-  if (peer) peer.destroy();
-  peer = new Peer(hostId);
-  peer.on('open', () => { bindPeer(); toast("周波数 " + freqInput.value + " MHz を開設しました"); uiConnected(); });
-  peer.on('error', err => {
-    if (err.type === 'unavailable-id') setTimeout(() => connectToMesh(hostId), 400 + Math.random() * 600); // 同時開設の競合
-    else { toast("接続エラー: " + err.type, true); resetUI(); }
-  });
-}
-
-/* ===== UI ===== */
-function toast(msg, err) {
-  const t = $('toasts'); while (t.children.length >= 3) t.firstChild.remove();
-  const d = document.createElement('div'); d.className = 'toast' + (err ? ' error' : '');
-  d.innerHTML = `<span class="material-icons" style="font-size:1.2rem">${err ? 'warning' : 'radar'}</span> ${msg}`;
-  t.appendChild(d); setTimeout(() => d.remove(), 3000);
-}
-function updateCount() { $('user-count').textContent = 'USERS: ' + (connected ? peers.size + 1 : 0); }
-function uiConnected() {
-  connected = true; $('dot').classList.add('on'); $('quality').classList.add('on');
-  bc.disabled = true; bc.classList.add('active'); bd.disabled = false; ptt.disabled = false; hf.disabled = false;
-  freqInput.disabled = $('fd').disabled = $('fu').disabled = true; updateCount();
-}
-function resetUI() {
-  connected = false; isHandsFree = false; pttHeld = false; setTx(false);
-  [...peers.keys()].forEach(removePeer);
-  if (peer) { peer.destroy(); peer = null; }
-  $('dot').classList.remove('on'); $('quality').classList.remove('on');
-  bc.disabled = false; bc.classList.remove('active'); bd.disabled = true; ptt.disabled = true; hf.disabled = true;
-  ptt.classList.remove('active'); hf.classList.remove('active');
-  freqInput.disabled = $('fd').disabled = $('fu').disabled = false; updateCount();
-}
-
-function setFreq(v) { let n = parseInt(v, 10); if (isNaN(n) || n < 1) n = 1; if (n > 10000) n = 10000; freqInput.value = n; }
-freqInput.addEventListener('change', e => setFreq(e.target.value));
-$('fd').onclick = () => setFreq(+freqInput.value - 1);
-$('fu').onclick = () => setFreq(+freqInput.value + 1);
-
-bc.onclick = async () => {
-  const f = parseInt(freqInput.value, 10);
-  bc.disabled = true; toast("回線を初期化中...");
-  if (!(await initAudio())) { bc.disabled = false; return; }
-  localStorage.setItem('transceiver_freq', f);
-  connectToMesh(PREFIX + f);
-};
-bd.onclick = () => { resetUI(); toast("回線を切断しました"); };
-
-const press = () => { pttHeld = true; ptt.classList.add('active'); setTx(true); };
-const release = () => { if (!pttHeld) return; pttHeld = false; ptt.classList.remove('active'); setTx(isHandsFree); };
-ptt.addEventListener('pointerdown', e => { e.preventDefault(); ptt.setPointerCapture(e.pointerId); press(); });
-['pointerup', 'pointercancel', 'lostpointercapture'].forEach(ev => ptt.addEventListener(ev, release));
-hf.onclick = () => {
-  isHandsFree = !isHandsFree; hf.classList.toggle('active', isHandsFree);
-  setTx(isHandsFree || pttHeld); toast(isHandsFree ? "常時送信 ON" : "常時送信 OFF");
-};
-window.addEventListener('keydown', e => { if (e.code === 'Space' && !e.repeat && connected && e.target !== freqInput) { e.preventDefault(); press(); } });
-window.addEventListener('keyup', e => { if (e.code === 'Space') release(); });
-window.addEventListener('beforeunload', () => { if (peer) peer.destroy(); });
-
-/* ===== 波形表示 ===== */
-function resize() { canvas.width = canvas.parentElement.clientWidth - 28; canvas.height = 160; }
-function trace(an, buf, yMid, amp, color) {
-  c2.strokeStyle = color; c2.lineWidth = 1.5; c2.beginPath();
-  if (an) an.getByteTimeDomainData(buf);
-  const n = buf ? buf.length : 2;
-  for (let i = 0; i < n; i++) {
-    const x = i / (n - 1) * canvas.width;
-    const y = yMid + (an ? (buf[i] - 128) / 128 : 0) * amp;
-    i ? c2.lineTo(x, y) : c2.moveTo(x, y);
-  }
-  c2.stroke();
-}
-function draw() {
-  raf = requestAnimationFrame(draw);
-  c2.fillStyle = '#050d05'; c2.fillRect(0, 0, canvas.width, canvas.height);
-  c2.strokeStyle = 'rgba(0,255,102,.08)'; c2.lineWidth = 1;
-  for (let y = 0; y <= 160; y += 40) { c2.beginPath(); c2.moveTo(0, y); c2.lineTo(canvas.width, y); c2.stroke(); }
-  trace(rxAnalyser, rxData, 40, 70, '#00ff66');
-  trace(txAnalyser, txData, 120, 70, '#ffb300');
-}
-window.addEventListener('DOMContentLoaded', () => {
-  resize(); window.addEventListener('resize', resize);
-  setFreq(localStorage.getItem('transceiver_freq') || 1234);
-  trace(null, null, 40, 0, '#00ff66'); trace(null, null, 120, 0, '#ffb300'); updateCount();
-  initNotificationStatus();
-});
+$('#create').onclick=()=>enter(true);$('#join').onclick=()=>enter(false);
+if(location.hash.length>1){$('#code').value=location.hash.slice(1).toUpperCase();$('#name').focus()}
 </script>
 </body>
 </html>
