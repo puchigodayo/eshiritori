@@ -192,6 +192,8 @@ dialog::backdrop{background:#000a}
       <label class="chk"><input type="checkbox" id="bLoop" checked>くり返す</label>
       <label class="chk"><input type="checkbox" id="bDuck">誰かが話している間は音量を下げる</label>
       <label class="chk"><input type="checkbox" id="bListen" checked>他の人が流すBGMも聴く</label>
+      <label class="chk"><input type="checkbox" id="bSync" checked>YouTubeを通話中の全員に同期して流す(オフなら自分の端末だけでそのまま再生)</label>
+      <label class="chk"><input type="checkbox" id="bMute">BGM中は自分のマイクを自動でミュート(エコー確認用)</label>
       <label class="chk"><input type="checkbox" id="bNs" checked>BGM中は自分のマイクのノイズ除去を切る(歌がこもるとき)</label>
       <p style="color:var(--dim);font-size:13px;margin-top:10px">再生すると通話中の全員の端末で同時に流れます(音量は各自で調整できます)。スピーカーだとマイクに入るので、イヤホンがおすすめです。</p>
     </details>
@@ -356,7 +358,8 @@ setInterval(()=>watch.forEach(w=>{w.an.getByteTimeDomainData(w.buf);let m=0;for(
 function broadcast(m){Object.values(peers).forEach(p=>p.data&&p.data.open&&p.data.send(m))}
 function sendKind(k,s){Object.keys(peers).forEach(id=>id!=='self'&&callTo(id,k,s))}
 function stopKind(k){const s=local[k];if(!s)return;s.getTracks().forEach(t=>t.stop());Object.values(peers).forEach(p=>p.out&&p.out[k]&&p.out[k].close());local[k]=null}
-$('#bMic').onclick=e=>{muted=!muted;local.mic.getAudioTracks().forEach(t=>t.enabled=!muted);const b=e.currentTarget;b.classList.toggle('off',muted);b.classList.toggle('x',muted);b.classList.toggle('on',!muted);peers.self.nm.classList.toggle('mu',muted);broadcast({t:'st',mute:muted})};
+function micUI(m){const b=$('#bMic');b.classList.toggle('off',m);b.classList.toggle('x',m);b.classList.toggle('on',!m);peers.self.nm.classList.toggle('mu',m);broadcast({t:'st',mute:m})}
+$('#bMic').onclick=()=>{if(autoMuted){autoMuted=false;muted=false}else muted=!muted;local.mic.getAudioTracks().forEach(t=>t.enabled=!muted);micUI(muted)};
 const camC=exact=>{const[w,h]=RES[cfg.res],v={width:{ideal:w},height:{ideal:h},frameRate:{ideal:cfg.fps}};
   if(cfg.cam)v.deviceId={exact:cfg.cam};else v.facingMode=exact?{exact:cfg.facing}:{ideal:cfg.facing};return{video:v}};
 const isFront=t=>{const fm=(t.getSettings&&t.getSettings().facingMode)||'';return fm?fm!=='environment':!/back|rear|environment|背面/i.test(t.label)};
@@ -461,8 +464,8 @@ async function ytLoad(o){ytPend=o;await loadYT();if(ready())return ytGo();if(ytM
     onError:()=>{toast('この動画は再生できません(埋め込み不可の可能性)');bgmUI(false)}}})}
 function bgmState(a){const g=f=>{try{return yt[f]()}catch(_){return 0}};
   return{t:'bgm',a,v:cur&&cur.v,list:cur&&cur.list,pos:g('getCurrentTime'),idx:g('getPlaylistIndex'),loop:$('#bLoop').checked}}
-const sendBgm=a=>cur&&broadcast(bgmState(a));
-function bgmHello(c){if(bgmOwner&&ready()&&yt.getPlayerState()===1)c.send(bgmState('play'))}
+const sendBgm=a=>cur&&$('#bSync').checked&&broadcast(bgmState(a));
+function bgmHello(c){if($('#bSync').checked&&bgmOwner&&ready()&&yt.getPlayerState()===1)c.send(bgmState('play'))}
 function stopLocal(){if(ready())yt.stopVideo();$('#bTitle').textContent='';bgmUI(false)}
 function onBgm(m,name){if(!$('#bListen').checked)return;
   if(m.a==='stop'){bgmOwner=false;stopLocal();return}
@@ -485,6 +488,7 @@ $('#bPlay').onclick=async()=>{aFile.pause();const u=$('#bUrl').value.trim();
 $('#bPause').onclick=()=>{if(!ready())return;yt.pauseVideo();if(bgmOwner)sendBgm('pause')};
 $('#bStop').onclick=()=>{if(bgmOwner)sendBgm('stop');bgmOwner=false;stopLocal()};
 $('#bLoop').onchange=()=>{aFile.loop=$('#bLoop').checked;ready()&&yt.setLoop&&yt.setLoop($('#bLoop').checked)};
+$('#bSync').onchange=e=>{if(e.target.checked&&bgmOwner&&ready())sendBgm('play')};
 $('#bListen').onchange=e=>{if(!e.target.checked&&!bgmOwner)stopLocal()};
 setInterval(()=>{if(bgmOwner&&ready()&&yt.getPlayerState()===1)sendBgm('sync')},8000);
 setInterval(()=>{if(!ready())return;try{const d=$('#bDuck').checked&&document.querySelector('.tile.speaking:not(.self)'),v=+$('#bVol').value*(d?.35:1);if(v!==lastV){lastV=v;yt.setVolume(v)}}catch(_){}},300);
@@ -555,11 +559,14 @@ setInterval(()=>{const d=$('#bDuck').checked&&document.querySelector('.tile.spea
   Object.values(peers).forEach(p=>{if(p.music){p.music.volume=Math.min(1,v);p.music.muted=mute}});if(aGain)aGain.gain.value=v},300);
 
 // BGMが流れている間はマイクのノイズ除去を切る(スピーカーから漏れたBGMが加工されて相手に届くのを防ぐ)
-let lastAct=null,lastTr=null;
+let lastAct=null,lastTr=null,autoMuted=false;
 setInterval(()=>{const t=local.mic&&local.mic.getAudioTracks()[0];if(!t)return;
-  const act=$('#bNs').checked&&!!((ready()&&yt.getPlayerState()===1)||(aFile.src&&!aFile.paused)||Object.values(peers).some(p=>p.music&&!p.music.muted));
-  if(act===lastAct&&t===lastTr)return;lastAct=act;lastTr=t;
-  t.applyConstraints({noiseSuppression:act?false:cfg.ns,autoGainControl:cfg.agc}).catch(()=>{})},500);
+  const bgm=!!((ready()&&yt.getPlayerState()===1)||(aFile.src&&!aFile.paused)||Object.values(peers).some(p=>p.music&&!p.music.muted));
+  const act=$('#bNs').checked&&bgm;
+  if(act!==lastAct||t!==lastTr){lastAct=act;lastTr=t;t.applyConstraints({noiseSuppression:act?false:cfg.ns,autoGainControl:cfg.agc}).catch(()=>{})}
+  const am=$('#bMute').checked&&bgm;
+  if(am&&!muted&&!autoMuted){autoMuted=true;muted=true;t.enabled=false;micUI(true)}
+  else if(!am&&autoMuted){autoMuted=false;muted=false;t.enabled=true;micUI(false)}},500);
 // BGM画面のタブ切り替え
 document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{
   document.querySelectorAll('.tab').forEach(t=>{const on=t===b;t.classList.toggle('on',on);$('#'+t.dataset.t).classList.toggle('hide',!on)})});
