@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>PMS通信</title>
+<title>PuchigoMassageService</title>
 <link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho+B1:wght@700&family=Zen+Kaku+Gothic+New:wght@400;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
 <style>
@@ -19,7 +19,8 @@ button.main{background:var(--sand);color:var(--on,#1a1710);border-color:var(--sa
 button.off{background:var(--bad);border-color:var(--bad);color:#fff}
 button.on{border-color:var(--ok);color:var(--ok)}
 input,select{background:#0b1013;border:1px solid var(--line);border-radius:8px;padding:10px 12px;width:100%;min-height:44px}
-h1{font:700 clamp(40px,9vw,72px)/1.1 "Shippori Mincho B1",serif;color:var(--sand);letter-spacing:.06em}
+h1{font:700 clamp(22px,6.4vw,34px)/1.2 "Shippori Mincho B1",serif;color:var(--sand);letter-spacing:.04em;overflow-wrap:anywhere}
+h1 b{font-size:2.1em;font-weight:700;line-height:1}
 label{display:block;color:var(--dim);font-size:13px;margin:14px 0 6px}
 .hide{display:none!important}
 #lobby{min-height:100%;display:grid;align-content:center;max-width:520px;margin:0 auto;padding:28px 20px}
@@ -101,7 +102,7 @@ dialog::backdrop{background:#000a}
 <body>
 
 <section id="lobby">
-  <h1>PMS通信</h1>
+  <h1><b>P</b>uchigo<b>M</b>assage<b>S</b>ervice</h1>
   <p class="lead">少人数向けの通話・ビデオ・画面共有。映像と音声は端末同士で直接つながり、暗号化されます。</p>
   <label for="name">name</label>
   <input id="name" maxlength="16" placeholder="例:Taro" autocomplete="off">
@@ -119,6 +120,7 @@ dialog::backdrop{background:#000a}
   <header>
     <b id="rcode"></b>
     <button id="copy">リンクをコピー</button>
+    <button id="bBgm" type="button">♪ BGM</button>
     <span id="hud"><i></i>接続待ち</span>
   </header>
   <button id="locbar" class="hide" type="button" aria-label="位置情報の地図を開く"><i></i><span>位置情報は共有されています</span><b>›</b></button>
@@ -134,6 +136,25 @@ dialog::backdrop{background:#000a}
   </nav>
 </section>
 
+<dialog id="dBgm">
+  <h2 style="font:700 20px 'Shippori Mincho B1',serif;color:var(--sand)">BGM</h2>
+  <label for="bUrl">YouTubeのURL(動画・プレイリスト)</label>
+  <input id="bUrl" placeholder="https://www.youtube.com/watch?v=..." autocomplete="off">
+  <div class="row" style="margin-top:12px"><button class="main" id="bPlay">再生</button><button id="bPause">一時停止</button><button id="bStop">停止</button></div>
+  <label for="bVol">音量</label><input type="range" id="bVol" min="0" max="100" value="30">
+  <label class="chk"><input type="checkbox" id="bLoop" checked>くり返す</label>
+  <label class="chk"><input type="checkbox" id="bDuck" checked>誰かが話している間は音量を下げる</label>
+  <label class="chk"><input type="checkbox" id="bListen" checked>他の人が流すBGMも聴く</label>
+  <hr style="border:0;border-top:1px solid var(--line);margin:18px 0 0">
+  <label for="bFile">自分の音声ファイル(全員に聞こえます)</label>
+  <input type="file" id="bFile" accept="audio/*,.mp3,.m4a,.wav,.flac,.ogg,.aac">
+  <audio id="aFile" controls class="hide" style="width:100%;margin-top:10px"></audio>
+  <button id="bFileOff" class="hide" type="button" style="margin-top:10px;width:100%">ファイルを外す</button>
+  <p id="bTitle" style="color:var(--dim);margin-top:12px;min-height:1.6em"></p>
+  <p style="color:var(--dim);font-size:13px">再生すると通話中の全員の端末で同時に流れます(音楽は各自の端末で再生され、音量は各自で調整できます)。スピーカーだとマイクに入るので、イヤホンがおすすめです。</p>
+  <div class="row" style="margin-top:16px"><button id="bClose">閉じる</button></div>
+</dialog>
+<div style="position:fixed;left:-9999px;top:0;width:200px;height:113px" aria-hidden="true"><div id="ytp"></div></div>
 <dialog id="dlg">
   <h2 style="font:700 20px 'Shippori Mincho B1',serif;color:var(--sand)">設定</h2>
   <label>マイク</label><select id="sMic"></select>
@@ -171,7 +192,7 @@ function swatches(el,pick){el.innerHTML='';
   COLORS.forEach(c=>{const b=document.createElement('button');b.type='button';b.className='sw'+(c===myColor?' sel':'');b.style.background=c;b.setAttribute('aria-label','テーマカラー '+c);b.onclick=()=>pick(c);el.append(b)});
   const i=document.createElement('input');i.type='color';i.value=myColor;i.className='swc';i.setAttribute('aria-label','好きな色を選ぶ');i.oninput=()=>pick(i.value,true);el.append(i)}
 function renderSw(){['#sw1','#sw2'].forEach(id=>swatches($(id),(c,keep)=>{setMyColor(c);if(!keep)renderSw()}))}
-let peer,myId,code,host=false,myName='',peers={},local={mic:null,cam:null,screen:null},muted=false,watch=[],actx;
+let peer,myId,code,host=false,myName='',peers={},local={mic:null,cam:null,screen:null,music:null},muted=false,watch=[],actx;
 
 let focusEl=null;
 function refreshFocus(){const g=$('#grid');[...g.children].forEach(t=>t.classList.toggle('big',t===focusEl));g.classList.toggle('focus',!!focusEl);$('#room').classList.toggle('mapmode',!!mtile&&focusEl===mtile);locUI();setTimeout(()=>{if(map){map.invalidateSize();if(focusEl===mtile)fitAll()}},80)}
@@ -226,15 +247,17 @@ function link(id){if(peers[id]||id===myId||!peer||peer.disconnected||peer.destro
 function ensure(id){if(peers[id])return peers[id];const p=peers[id]={id,name:'…',out:{},inc:{},...mkTile(id,'…')};p.el._p=p;return p}
 function reset(p){Object.values(p.out).concat(Object.values(p.inc)).forEach(c=>c.close());p.out={};p.inc={};p.vid.hidden=true;
   if(p.scr){if(focusEl===p.scr)focusEl=null;p.scr.remove();p.scr=null;refreshFocus()}}
-function sendAllTo(id){['mic','cam','screen'].forEach(k=>local[k]&&callTo(id,k,local[k]))}
+function sendAllTo(id){['mic','cam','screen','music'].forEach(k=>local[k]&&callTo(id,k,local[k]))}
 function onData(c,inc){const id=c.peer;
   c.on('open',()=>{delete pending[id];const old=peers[id];if(inc&&old&&old.data&&old.data!==c)reset(old);
-    const p=ensure(id);p.data=c;p.t0=Date.now();everConn=true;c.send({t:'hello',name:myName,mute:muted,color:myColor});if(mine)c.send({t:'loc',...mine});sendAllTo(id)});
+    const p=ensure(id);p.data=c;p.t0=Date.now();everConn=true;c.send({t:'hello',name:myName,mute:muted,color:myColor});if(mine)c.send({t:'loc',...mine});bgmHello(c);if(local.music)c.send({t:'music',name:musicName});sendAllTo(id)});
   c.on('data',m=>{const p=ensure(id);
     if(m.t==='hello'){p.name=m.name;p.nm.textContent=m.name;p.av.textContent=[...m.name][0];p.nm.classList.toggle('mu',!!m.mute);
       if(host)c.send({t:'roster',ids:Object.keys(peers).filter(x=>x!==id&&x!=='self')})}
     if(m.t==='roster')m.ids.forEach(link);
     if(m.t==='st')p.nm.classList.toggle('mu',!!m.mute);
+    if(m.t==='bgm')onBgm(m,p.name);
+    if(m.t==='music')$('#bTitle').textContent=m.off?'':'♪ '+p.name+' の音楽:'+m.name;
     if(m.color&&(m.t==='hello'||m.t==='color')){p.color=m.color;setTileColor(p.el,m.color);if(p.scr)setTileColor(p.scr,m.color);recolorMarks()}
     if(m.t==='loc'){if(m.off){p.nm.classList.remove('lc');delMark(id)}else{p.nm.classList.add('lc');setMark(id,p.name,m)}}
     if(m.t==='need'){Object.values(p.out).forEach(x=>x.close());p.out={};sendAllTo(id)}});
@@ -260,17 +283,18 @@ function recover(){if(!shown||leaving||document.hidden)return;
 document.addEventListener('visibilitychange',recover);['pageshow','online','focus'].forEach(e=>addEventListener(e,recover));
 setInterval(()=>{if(!shown||leaving||document.hidden||!peer)return;if(peer.destroyed)again(0);else if(peer.disconnected)peer.reconnect();else relinkAll()},5000);
 function callTo(id,kind,stream){const p=ensure(id);if(p.out[kind])return;
-  const c=peer.call(id,stream,{metadata:{kind},sdpTransform:opus(kind==='screen')});p.out[kind]=c;
+  const c=peer.call(id,stream,{metadata:{kind},sdpTransform:opus(kind==='screen'||kind==='music')});p.out[kind]=c;
   c.on('close',()=>{if(p.out[kind]===c)delete p.out[kind]});[600,2500].forEach(d=>setTimeout(()=>tune(c,kind),d))}
 function tune(c,kind){try{c.peerConnection.getSenders().forEach(async s=>{if(!s.track)return;
   const q=s.getParameters();if(!q.encodings||!q.encodings.length)q.encodings=[{}];const e=q.encodings[0];
-  if(s.track.kind==='audio'){e.maxBitrate=kind==='screen'?192000:128000;e.priority='high';e.networkPriority='high'}
+  if(s.track.kind==='audio'){e.maxBitrate=kind==='screen'||kind==='music'?192000:128000;e.priority='high';e.networkPriority='high'}
   else{e.maxBitrate=cfg.br*1000*(kind==='screen'?2:1);e.maxFramerate=cfg.fps;q.degradationPreference=kind==='screen'?'maintain-resolution':'maintain-framerate'}
   try{await s.setParameters(q)}catch(_){}})}catch(_){}}
-function onCall(c){const kind=c.metadata.kind,p=ensure(c.peer);c.answer(undefined,{sdpTransform:opus(kind==='screen')});p.inc[kind]=c;
-  c.on('stream',s=>{try{c.peerConnection.getReceivers().forEach(r=>r.jitterBufferTarget=kind==='mic'?20:0)}catch(_){}
+function onCall(c){const kind=c.metadata.kind,p=ensure(c.peer);c.answer(undefined,{sdpTransform:opus(kind==='screen'||kind==='music')});p.inc[kind]=c;
+  c.on('stream',s=>{try{c.peerConnection.getReceivers().forEach(r=>r.jitterBufferTarget=kind==='mic'?20:kind==='music'?80:0)}catch(_){}
     if(kind==='mic'){const a=new Audio();a.autoplay=true;a.srcObject=s;if(cfg.spk&&a.setSinkId)a.setSinkId(cfg.spk).catch(()=>{});p.audio=a;watchStream(s,p.el)}
     if(kind==='cam'){p.vid.srcObject=s;p.vid.hidden=false}
+    if(kind==='music'){const a=new Audio();a.autoplay=true;a.srcObject=s;if(cfg.spk&&a.setSinkId)a.setSinkId(cfg.spk).catch(()=>{});p.music=a}
     if(kind==='screen'){const t=mkTile(c.peer+':s',p.name+' の画面');t.el.classList.add('screen');p.color&&setTileColor(t.el,p.color);t.av.remove();t.vid.hidden=false;t.vid.muted=false;t.vid.srcObject=s;p.scr=t.el;$('#grid').prepend(t.el);focusEl=t.el;refreshFocus()}});
   c.on('close',()=>{if(p.inc[kind]!==c)return;delete p.inc[kind];if(kind==='cam')p.vid.hidden=true;if(kind==='screen'&&p.scr){if(focusEl===p.scr)focusEl=null;p.scr.remove();p.scr=null;refreshFocus()}})}
 function drop(id){const p=peers[id];if(!p)return;Object.values(p.out).concat(Object.values(p.inc)).forEach(c=>c.close());
@@ -311,11 +335,11 @@ $('#bScr').onclick=async()=>{
   try{local.screen=await navigator.mediaDevices.getDisplayMedia({video:{width:{ideal:w},height:{ideal:h},frameRate:{ideal:cfg.fps}},audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false,channelCount:2,sampleRate:48000},systemAudio:'include'})}catch(e){return}
   local.screen.getVideoTracks()[0].contentHint='detail';local.screen.getVideoTracks()[0].onended=()=>{stopKind('screen');$('#bScr').classList.remove('on')};
   sendKind('screen',local.screen);$('#bScr').classList.add('on')};
-$('#bLine').onclick=()=>{const t='【PMS通信】回線コード '+code+' に入ってください\n'+roomLink();
+$('#bLine').onclick=()=>{const t='【PuchigoMassageService】回線コード '+code+' に入ってください\n'+roomLink();
   if(location.protocol==='file:')toast('リンクを使うにはWebに公開して開いてください');
   window.open('https://line.me/R/share?text='+encodeURIComponent(t),'_blank')};
 $('#copy').onclick=()=>navigator.clipboard.writeText(roomLink()).then(()=>toast('リンクをコピーしました'));
-function leave(){leaving=true;clearTimeout(rt);Object.keys(peers).forEach(id=>id!=='self'&&drop(id));['mic','cam','screen'].forEach(stopKind);peer&&peer.destroy();location.hash='';location.reload()}
+function leave(){leaving=true;clearTimeout(rt);Object.keys(peers).forEach(id=>id!=='self'&&drop(id));['mic','cam','screen','music'].forEach(stopKind);peer&&peer.destroy();location.hash='';location.reload()}
 $('#bLeave').onclick=leave;
 
 // 位置情報(参加者の同意のうえで共有。いつでも停止可能)
@@ -374,6 +398,71 @@ $('#bLoc').onclick=()=>{
   watchId=navigator.geolocation.watchPosition(onFix,er=>{if(er.code===1){toast('位置情報の使用が許可されていません');stopLoc()}else if(!gpsWarn){gpsWarn=true;toast('GPSを探しています…')}},
     {enableHighAccuracy:true,maximumAge:0,timeout:30000});
   const b=$('#bLoc');b.classList.add('on');b.classList.remove('x');peers.self.nm.classList.add('lc')};
+
+// BGM(YouTube):URLと再生位置を共有し、各自の端末で同時に再生する
+let yt=null,ytP=null,ytMake=false,ytPend=null,cur=null,inList=false,lastUrl='',lastV=-1,bgmOwner=false;
+function loadYT(){return ytP||(ytP=new Promise(res=>{const t=document.createElement('script');t.src='https://www.youtube.com/iframe_api';document.head.append(t);window.onYouTubeIframeAPIReady=res}))}
+function parseYT(u){try{const x=new URL(u.trim());let v=x.searchParams.get('v');if(x.hostname==='youtu.be')v=x.pathname.slice(1);
+  const m=x.pathname.match(/\/(shorts|embed|live)\/([\w-]{11})/);if(m)v=m[2];return{v:v&&v.slice(0,11),list:x.searchParams.get('list')}}catch(_){return{}}}
+const bgmUI=on=>$('#bBgm').classList.toggle('on',on);
+const ready=()=>yt&&yt.loadVideoById&&yt.getPlayerState;
+function ytGo(){const o=ytPend;if(!o)return;ytPend=null;inList=!!o.list;cur={v:o.v||null,list:o.list||null};
+  o.list?yt.loadPlaylist({list:o.list,listType:'playlist',index:o.idx||0,startSeconds:o.pos||0}):yt.loadVideoById({videoId:o.v,startSeconds:o.pos||0});
+  yt.setLoop&&yt.setLoop(o.loop!==false)}
+async function ytLoad(o){ytPend=o;await loadYT();if(ready())return ytGo();if(ytMake)return;ytMake=true;
+  yt=new YT.Player('ytp',{width:200,height:113,playerVars:{playsinline:1,controls:0},events:{
+    onReady:e=>{e.target.setVolume(+$('#bVol').value);lastV=+$('#bVol').value;ytGo()},
+    onStateChange:e=>{const st=e.data;bgmUI(st===1);
+      if(st===1&&bgmOwner){try{$('#bTitle').textContent='♪ '+e.target.getVideoData().title}catch(_){}}
+      if(st===0&&!inList&&$('#bLoop').checked){e.target.seekTo(0);e.target.playVideo()}},
+    onError:()=>{toast('この動画は再生できません(埋め込み不可の可能性)');bgmUI(false)}}})}
+function bgmState(a){const g=f=>{try{return yt[f]()}catch(_){return 0}};
+  return{t:'bgm',a,v:cur&&cur.v,list:cur&&cur.list,pos:g('getCurrentTime'),idx:g('getPlaylistIndex'),loop:$('#bLoop').checked}}
+const sendBgm=a=>cur&&broadcast(bgmState(a));
+function bgmHello(c){if(bgmOwner&&ready()&&yt.getPlayerState()===1)c.send(bgmState('play'))}
+function stopLocal(){if(ready())yt.stopVideo();$('#bTitle').textContent='';bgmUI(false)}
+function onBgm(m,name){if(!$('#bListen').checked)return;
+  if(m.a==='stop'){bgmOwner=false;stopLocal();return}
+  if(m.a==='pause'){ready()&&yt.pauseVideo();return}
+  const same=cur&&cur.v===(m.v||null)&&cur.list===(m.list||null);
+  if(m.a==='sync'){if(!same||!ready())return;const st=yt.getPlayerState();
+    if(m.list&&yt.getPlaylistIndex&&yt.getPlaylistIndex()!==m.idx){yt.playVideoAt(m.idx);return}
+    if(st===1&&Math.abs(yt.getCurrentTime()-m.pos)>2.5)yt.seekTo(m.pos,true);return}
+  bgmOwner=false;$('#bTitle').textContent='♪ '+name+' のBGM';
+  if(same&&ready()){yt.seekTo(m.pos+.3,true);yt.playVideo();return}
+  ytLoad({v:m.v,list:m.list,pos:m.pos+.4,idx:m.idx,loop:m.loop});
+  setTimeout(()=>{if(!ready()||yt.getPlayerState()!==1)toast('BGMが始まらないときは ♪ BGM を開いて「再生」を押してください')},3500)}
+$('#bBgm').onclick=()=>$('#dBgm').showModal();$('#bClose').onclick=()=>$('#dBgm').close();
+$('#bPlay').onclick=async()=>{aFile.pause();const u=$('#bUrl').value.trim();
+  if(ready()&&u===lastUrl&&yt.getPlayerState()!==-1){yt.playVideo();bgmOwner=true;sendBgm('play');return}
+  if(!u&&cur&&ready()){yt.playVideo();return}
+  const{v,list}=parseYT(u);if(!v&&!list)return toast('YouTubeのURLを入力してください');
+  lastUrl=u;bgmOwner=true;await ytLoad({v,list,pos:0,loop:$('#bLoop').checked});
+  setTimeout(()=>sendBgm('play'),900)};
+$('#bPause').onclick=()=>{if(!ready())return;yt.pauseVideo();if(bgmOwner)sendBgm('pause')};
+$('#bStop').onclick=()=>{if(bgmOwner)sendBgm('stop');bgmOwner=false;stopLocal()};
+$('#bLoop').onchange=()=>{aFile.loop=$('#bLoop').checked;ready()&&yt.setLoop&&yt.setLoop($('#bLoop').checked)};
+$('#bListen').onchange=e=>{if(!e.target.checked&&!bgmOwner)stopLocal()};
+setInterval(()=>{if(bgmOwner&&ready()&&yt.getPlayerState()===1)sendBgm('sync')},8000);
+setInterval(()=>{if(!ready())return;try{const d=$('#bDuck').checked&&document.querySelector('.tile.speaking:not(.self)'),v=+$('#bVol').value*(d?.35:1);if(v!==lastV){lastV=v;yt.setVolume(v)}}catch(_){}},300);
+
+// 自分の音声ファイルを通話で全員に送る(WebRTCで高音質ステレオ送信)
+let aSrc=null,aGain=null,aDest=null,musicName='';
+const aFile=$('#aFile');
+$('#bFile').onchange=e=>{const f=e.target.files[0];if(!f)return;
+  actx=actx||new AudioContext();actx.resume();
+  if(aFile.src)URL.revokeObjectURL(aFile.src);
+  aFile.src=URL.createObjectURL(f);aFile.loop=$('#bLoop').checked;aFile.classList.remove('hide');$('#bFileOff').classList.remove('hide');
+  if(!aSrc){aSrc=actx.createMediaElementSource(aFile);aGain=actx.createGain();aGain.gain.value=+$('#bVol').value/100;aSrc.connect(aGain);aGain.connect(actx.destination)}
+  stopKind('music');aDest&&aSrc.disconnect(aDest);
+  aDest=actx.createMediaStreamDestination();aSrc.connect(aDest);local.music=aDest.stream;sendKind('music',local.music);
+  musicName=f.name.replace(/\.[^.]+$/,'');broadcast({t:'music',name:musicName});
+  $('#bTitle').textContent='♪ '+musicName;aFile.play().catch(()=>{});e.target.value=''};
+$('#bFileOff').onclick=()=>{aFile.pause();aFile.removeAttribute('src');aFile.load();aFile.classList.add('hide');$('#bFileOff').classList.add('hide');
+  stopKind('music');aDest&&aSrc.disconnect(aDest);aDest=null;broadcast({t:'music',off:true});$('#bTitle').textContent=''};
+aFile.onplay=()=>{if(ready()&&yt.getPlayerState()===1){if(bgmOwner)sendBgm('stop');bgmOwner=false;yt.pauseVideo()}};
+setInterval(()=>{const d=$('#bDuck').checked&&document.querySelector('.tile.speaking:not(.self)'),v=+$('#bVol').value/100*(d?.35:1),mute=!$('#bListen').checked;
+  Object.values(peers).forEach(p=>{if(p.music){p.music.volume=Math.min(1,v);p.music.muted=mute}});if(aGain)aGain.gain.value=v},300);
 
 // 設定
 $('#bSet').onclick=async()=>{const d=await navigator.mediaDevices.enumerateDevices();
