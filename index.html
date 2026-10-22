@@ -19,7 +19,7 @@ button.main{background:var(--sand);color:var(--on,#1a1710);border-color:var(--sa
 button.off{background:var(--bad);border-color:var(--bad);color:#fff}
 button.on{border-color:var(--ok);color:var(--ok)}
 input,select{background:#0b1013;border:1px solid var(--line);border-radius:8px;padding:10px 12px;width:100%;min-height:44px}
-h1{font:700 clamp(22px,6.4vw,34px)/1.2 "Shippori Mincho B1",serif;color:var(--sand);letter-spacing:.04em;overflow-wrap:anywhere}
+h1{font:700 min(31px,5.4vw)/1.2 "Shippori Mincho B1",serif;color:var(--sand);letter-spacing:.02em;white-space:nowrap}
 h1 b{font-size:2.1em;font-weight:700;line-height:1}
 label{display:block;color:var(--dim);font-size:13px;margin:14px 0 6px}
 .hide{display:none!important}
@@ -85,6 +85,17 @@ nav{gap:4px}
 .pr i{width:12px;height:12px;border-radius:50%;flex:none}
 .pr span{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .pr b{color:var(--dim);font-weight:400;font-size:12px;white-space:nowrap}
+#dBgm{max-height:88vh;overflow:auto}
+.lr{display:flex;gap:6px;margin-top:6px}
+.lr button{min-height:44px}
+.lp{flex:1;min-width:0;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ls,.lx{width:44px;padding:0;flex:none}
+.ls.on{color:var(--sand);border-color:var(--sand)}
+.sr{display:flex;gap:10px;align-items:center;width:100%;text-align:left;margin-top:6px;padding:6px}
+.sr img{width:96px;height:54px;object-fit:cover;border-radius:6px;flex:none;background:#000}
+.sr div{min-width:0}
+.sr b{font-size:13px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.sr span{color:var(--dim);font-size:12px}
 #grid.focus{display:flex;flex-wrap:wrap;align-content:flex-start;overflow:auto}
 #grid.focus .tile.big{order:-1;flex:1 0 100%;width:100%;height:calc(100% - 100px);min-height:200px;aspect-ratio:auto;max-height:none}
 #grid.focus .big video{object-fit:contain}
@@ -138,9 +149,13 @@ dialog::backdrop{background:#000a}
 
 <dialog id="dBgm">
   <h2 style="font:700 20px 'Shippori Mincho B1',serif;color:var(--sand)">BGM</h2>
-  <label for="bUrl">YouTubeのURL(動画・プレイリスト)</label>
-  <input id="bUrl" placeholder="https://www.youtube.com/watch?v=..." autocomplete="off">
+  <label for="bUrl">YouTube(曲名で検索、またはURL)</label>
+  <div class="row"><input id="bUrl" placeholder="曲名・アーティスト名、またはURL" autocomplete="off"><button id="bSearch" type="button">検索</button></div>
+  <div id="ysr"></div>
   <div class="row" style="margin-top:12px"><button class="main" id="bPlay">再生</button><button id="bPause">一時停止</button><button id="bStop">停止</button></div>
+  <details style="margin-top:8px"><summary style="color:var(--dim);cursor:pointer;min-height:44px;display:flex;align-items:center">YouTube検索の設定</summary>
+    <label for="yKey">YouTube Data API v3 のキー(任意)</label><input id="yKey" placeholder="AIza..." autocomplete="off">
+    <p style="color:var(--dim);font-size:13px;margin-top:6px">未入力でも公開の検索サーバー経由で検索しますが、止まっていることがあります。確実に使うならキーを入れてください(無料枠で1日約100回検索できます)。</p></details>
   <label for="bVol">音量</label><input type="range" id="bVol" min="0" max="100" value="30">
   <label class="chk"><input type="checkbox" id="bLoop" checked>くり返す</label>
   <label class="chk"><input type="checkbox" id="bDuck" checked>誰かが話している間は音量を下げる</label>
@@ -150,6 +165,8 @@ dialog::backdrop{background:#000a}
   <input type="file" id="bFile" accept="audio/*,.mp3,.m4a,.wav,.flac,.ogg,.aac">
   <audio id="aFile" controls class="hide" style="width:100%;margin-top:10px"></audio>
   <button id="bFileOff" class="hide" type="button" style="margin-top:10px;width:100%">ファイルを外す</button>
+  <label>お気に入り(5つまで)</label><div id="favList"></div>
+  <label>履歴(10個まで)</label><div id="histList"></div>
   <p id="bTitle" style="color:var(--dim);margin-top:12px;min-height:1.6em"></p>
   <p style="color:var(--dim);font-size:13px">再生すると通話中の全員の端末で同時に流れます(音楽は各自の端末で再生され、音量は各自で調整できます)。スピーカーだとマイクに入るので、イヤホンがおすすめです。</p>
   <div class="row" style="margin-top:16px"><button id="bClose">閉じる</button></div>
@@ -449,15 +466,62 @@ setInterval(()=>{if(!ready())return;try{const d=$('#bDuck').checked&&document.qu
 // 自分の音声ファイルを通話で全員に送る(WebRTCで高音質ステレオ送信)
 let aSrc=null,aGain=null,aDest=null,musicName='';
 const aFile=$('#aFile');
-$('#bFile').onchange=e=>{const f=e.target.files[0];if(!f)return;
-  actx=actx||new AudioContext();actx.resume();
+function loadMusic(blob,name){actx=actx||new AudioContext();actx.resume();
   if(aFile.src)URL.revokeObjectURL(aFile.src);
-  aFile.src=URL.createObjectURL(f);aFile.loop=$('#bLoop').checked;aFile.classList.remove('hide');$('#bFileOff').classList.remove('hide');
+  aFile.src=URL.createObjectURL(blob);aFile.loop=$('#bLoop').checked;aFile.classList.remove('hide');$('#bFileOff').classList.remove('hide');
   if(!aSrc){aSrc=actx.createMediaElementSource(aFile);aGain=actx.createGain();aGain.gain.value=+$('#bVol').value/100;aSrc.connect(aGain);aGain.connect(actx.destination)}
   stopKind('music');aDest&&aSrc.disconnect(aDest);
   aDest=actx.createMediaStreamDestination();aSrc.connect(aDest);local.music=aDest.stream;sendKind('music',local.music);
-  musicName=f.name.replace(/\.[^.]+$/,'');broadcast({t:'music',name:musicName});
-  $('#bTitle').textContent='♪ '+musicName;aFile.play().catch(()=>{});e.target.value=''};
+  musicName=name;broadcast({t:'music',name});$('#bTitle').textContent='♪ '+name;aFile.play().catch(()=>{})}
+const baseName=n=>n.replace(/\.[^.]+$/,'');
+$('#bFile').onchange=async e=>{const f=e.target.files[0];if(!f)return;loadMusic(f,baseName(f.name));await saveHist(f);e.target.value=''};
+// 履歴(10個)とお気に入り(5つ)はこのブラウザ内(IndexedDB)に保存
+const idb=()=>new Promise((ok,ng)=>{const r=indexedDB.open('pms-audio',1);r.onupgradeneeded=()=>r.result.createObjectStore('f',{keyPath:'id'});r.onsuccess=()=>ok(r.result);r.onerror=()=>ng(r.error)});
+const dbDo=async(m,a)=>{const d=await idb();return new Promise(ok=>{const t=d.transaction('f',m==='getAll'?'readonly':'readwrite'),q=t.objectStore('f')[m](a);t.oncomplete=()=>ok(q.result);t.onerror=t.onabort=()=>ok(null)})};
+async function libAll(){try{return(await dbDo('getAll'))||[]}catch(_){return[]}}
+async function prune(){const h=(await libAll()).filter(x=>!x.fav).sort((a,b)=>b.t-a.t);for(const x of h.slice(10))await dbDo('delete',x.id)}
+async function saveHist(f){try{const all=await libAll(),ex=all.find(x=>x.fn===f.name&&x.size===f.size);
+  if(ex){ex.t=Date.now();await dbDo('put',ex)}else await dbDo('put',{id:Date.now()+'-'+Math.random().toString(36).slice(2,7),fn:f.name,size:f.size,t:Date.now(),fav:false,blob:f.slice(0,f.size,f.type)});
+  await prune()}catch(_){}renderLib()}
+async function renderLib(){const all=(await libAll()).sort((a,b)=>b.t-a.t);
+  const mk=(box,arr,empty)=>{box.innerHTML='';if(!arr.length){box.innerHTML='<p style="color:var(--dim);font-size:13px;margin-top:6px">'+empty+'</p>';return}
+    arr.forEach(x=>{const r=document.createElement('div');r.className='lr';
+      const p=document.createElement('button');p.type='button';p.className='lp';p.textContent='♪ '+baseName(x.fn);p.title=x.fn;
+      p.onclick=async()=>{loadMusic(x.blob,baseName(x.fn));x.t=Date.now();await dbDo('put',x);renderLib()};
+      const st=document.createElement('button');st.type='button';st.className='ls'+(x.fav?' on':'');st.textContent=x.fav?'★':'☆';st.setAttribute('aria-label','お気に入り');
+      st.onclick=async()=>{if(!x.fav&&all.filter(y=>y.fav).length>=5)return toast('お気に入りは5つまでです');x.fav=!x.fav;await dbDo('put',x);await prune();renderLib()};
+      const d=document.createElement('button');d.type='button';d.className='lx';d.textContent='✕';d.setAttribute('aria-label','削除');
+      d.onclick=async()=>{await dbDo('delete',x.id);renderLib()};
+      r.append(p,st,d);box.append(r)})};
+  mk($('#favList'),all.filter(x=>x.fav).slice(0,5),'★を押すとここに登録できます');
+  mk($('#histList'),all.filter(x=>!x.fav).slice(0,10),'ファイルを選ぶと履歴に残ります')}
+renderLib();
+// YouTube検索(APIキーがあれば公式API、なければ公開の検索サーバーを順に試す)
+try{$('#yKey').value=localStorage.getItem('pms-ykey')||''}catch(_){}
+$('#yKey').onchange=()=>{try{localStorage.setItem('pms-ykey',$('#yKey').value.trim())}catch(_){}};
+const dec=t=>{const e=document.createElement('textarea');e.innerHTML=t;return e.value};
+async function apiSearch(q,key){const r=await fetch('https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&videoEmbeddable=true&maxResults=10&q='+encodeURIComponent(q)+'&key='+encodeURIComponent(key));
+  const j=await r.json();if(j.error){toast('APIキーのエラー:'+(j.error.message||'').slice(0,50));return null}
+  return(j.items||[]).map(x=>({id:x.id.videoId,title:dec(x.snippet.title),ch:dec(x.snippet.channelTitle)}))}
+const PIPED=['https://pipedapi.kavin.rocks','https://api.piped.private.coffee','https://pipedapi.adminforge.de'];
+async function pipedSearch(q){for(const b of PIPED){try{const c=new AbortController(),to=setTimeout(()=>c.abort(),4500);
+  const r=await fetch(b+'/search?q='+encodeURIComponent(q)+'&filter=videos',{signal:c.signal});clearTimeout(to);if(!r.ok)continue;
+  const it=((await r.json()).items||[]).filter(x=>x.url&&x.url.includes('v=')).slice(0,10).map(x=>({id:new URL(x.url,'https://x.invalid').searchParams.get('v'),title:x.title,ch:x.uploaderName}));
+  if(it.length)return it}catch(_){}}return null}
+function showResults(items){const box=$('#ysr');box.innerHTML='';
+  items.forEach(x=>{const b=document.createElement('button');b.type='button';b.className='sr';
+    const im=new Image();im.src='https://i.ytimg.com/vi/'+x.id+'/mqdefault.jpg';im.alt='';
+    const d=document.createElement('div'),t=document.createElement('b'),c=document.createElement('span');t.textContent=x.title;c.textContent=x.ch||'';d.append(t,c);b.append(im,d);
+    b.onclick=()=>{$('#bUrl').value='https://www.youtube.com/watch?v='+x.id;$('#bPlay').click()};box.append(b)})}
+async function ySearch(){const q=$('#bUrl').value.trim();if(!q)return toast('検索ワードを入力してください');
+  const u=parseYT(q);if(u.v||u.list){$('#bPlay').click();return}
+  const box=$('#ysr');box.innerHTML='<p style="color:var(--dim);margin-top:8px">検索中…</p>';
+  let items=null;const key=$('#yKey').value.trim();
+  if(key){try{items=await apiSearch(q,key)}catch(_){}}
+  if(!items)items=await pipedSearch(q);
+  if(!items||!items.length){box.innerHTML='<p style="color:var(--dim);margin-top:8px">検索できませんでした。「YouTube検索の設定」にAPIキーを入れると安定します。</p>';return}
+  showResults(items)}
+$('#bSearch').onclick=ySearch;$('#bUrl').onkeydown=e=>{if(e.key==='Enter')ySearch()};
 $('#bFileOff').onclick=()=>{aFile.pause();aFile.removeAttribute('src');aFile.load();aFile.classList.add('hide');$('#bFileOff').classList.add('hide');
   stopKind('music');aDest&&aSrc.disconnect(aDest);aDest=null;broadcast({t:'music',off:true});$('#bTitle').textContent=''};
 aFile.onplay=()=>{if(ready()&&yt.getPlayerState()===1){if(bgmOwner)sendBgm('stop');bgmOwner=false;yt.pauseVideo()}};
