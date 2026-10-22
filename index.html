@@ -15,7 +15,7 @@ button,input,select{font:inherit;color:inherit}
 button{cursor:pointer;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 16px;min-height:44px}
 button:hover{border-color:var(--sand)}
 button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--sand);outline-offset:2px}
-button.main{background:var(--sand);color:#1a1710;border-color:var(--sand);font-weight:700}
+button.main{background:var(--sand);color:var(--on,#1a1710);border-color:var(--sand);font-weight:700}
 button.off{background:var(--bad);border-color:var(--bad);color:#fff}
 button.on{border-color:var(--ok);color:var(--ok)}
 input,select{background:#0b1013;border:1px solid var(--line);border-radius:8px;padding:10px 12px;width:100%;min-height:44px}
@@ -34,10 +34,10 @@ header b{font:700 22px "Shippori Mincho B1",serif;color:var(--sand);letter-spaci
 #grid{flex:1;overflow:auto;padding:12px;display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));align-content:center}
 .tile{position:relative;aspect-ratio:16/9;background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:hidden;display:grid;place-items:center}
 .tile{cursor:pointer}
-.tile.speaking{border-color:var(--ok);box-shadow:0 0 0 3px var(--ok),0 0 30px 6px #6fc2b0aa}
-.tile.speaking .nm{background:var(--ok);color:#0a1a16;font-weight:700}
+.tile.speaking{border-color:var(--c,var(--ok));box-shadow:0 0 0 3px var(--c,var(--ok)),0 0 30px 6px color-mix(in srgb,var(--c,var(--ok)) 65%,transparent)}
+.tile.speaking .nm{background:var(--c,var(--ok));color:var(--on,#0a1a16);font-weight:700}
 .tile video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:#000}
-.tile.self video{transform:scaleX(-1)}
+.tile.self.mir video{transform:scaleX(-1)}
 .tile.screen{grid-column:1/-1;aspect-ratio:16/9;max-height:64vh;justify-self:center;width:100%}
 .tile.screen video{object-fit:contain}
 .av{font:700 56px "Shippori Mincho B1",serif;color:var(--sand)}
@@ -57,7 +57,14 @@ nav{display:flex;flex-wrap:nowrap;gap:6px;justify-content:center;padding:8px 8px
 .mp .leaflet-tile-pane{filter:invert(1) hue-rotate(180deg) brightness(.85) contrast(.9)}
 .leaflet-tooltip{background:var(--ink);color:var(--txt);border:1px solid var(--sand);box-shadow:none;font:700 12px "Zen Kaku Gothic New",sans-serif}
 .leaflet-tooltip-top:before{border-top-color:var(--sand)}
-.nm.lc::before{content:"● ";color:var(--ok)}
+.nm.lc::before{content:"● ";color:var(--c,var(--ok))}
+.sws{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.sw{width:36px;height:36px;min-height:0;padding:0;border-radius:50%;border:3px solid var(--line)}
+.sw.sel{border-color:#fff}
+.swc{width:48px!important;height:36px;min-height:0!important;padding:2px!important}
+.fl{position:absolute;top:8px;left:8px;z-index:2;min-height:0;height:28px;width:84px;padding:0;font-size:12px;line-height:26px;text-align:center;background:#000a;border:1px solid #fff3;border-radius:6px;white-space:nowrap;color:var(--txt);display:none}
+.tile.camon .fl{display:block}
+#grid.focus .tile:not(.big) .fl{display:none}
 nav{gap:4px}
 #locbar{margin:8px 12px 0;display:flex;align-items:center;gap:10px;width:calc(100% - 24px);min-height:44px;text-align:left;border-color:var(--ok)}
 #locbar i{width:10px;height:10px;border-radius:50%;background:var(--ok);flex:none}
@@ -80,7 +87,7 @@ nav{gap:4px}
 dialog{background:var(--panel);color:var(--txt);border:1px solid var(--line);border-radius:12px;padding:20px;width:min(440px,92vw);margin:auto}
 dialog::backdrop{background:#000a}
 .chk{display:flex;gap:10px;align-items:center;margin-top:10px;color:var(--txt)}.chk input{width:auto;min-height:0}
-#toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:var(--sand);color:#1a1710;padding:10px 18px;border-radius:8px;font-weight:700;z-index:9}
+#toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:var(--sand);color:var(--on,#1a1710);padding:10px 18px;border-radius:8px;font-weight:700;z-index:9}
 @media (prefers-reduced-motion:no-preference){.tile{transition:box-shadow .12s}}
 </style>
 </head>
@@ -91,6 +98,8 @@ dialog::backdrop{background:#000a}
   <p class="lead">少人数向けの通話・ビデオ・画面共有。映像と音声は端末同士で直接つながり、暗号化されます。</p>
   <label for="name">name</label>
   <input id="name" maxlength="16" placeholder="例:Taro" autocomplete="off">
+  <label>テーマカラー(文字や地図の自分の色になります)</label>
+  <div class="sws" id="sw1"></div>
   <label for="rid">回線ID(空欄なら自動で決まります)</label>
   <input id="rid" maxlength="16" placeholder="例:MY-ROOM" autocomplete="off" style="text-transform:uppercase">
   <div style="margin-top:20px"><button class="main" id="create" style="width:100%">新しい回線を開く</button></div>
@@ -123,6 +132,7 @@ dialog::backdrop{background:#000a}
   <label>マイク</label><select id="sMic"></select>
   <label>カメラ</label><select id="sCam"></select>
   <label>スピーカー</label><select id="sSpk"></select>
+  <label>テーマカラー</label><div class="sws" id="sw2"></div>
   <div class="row">
     <div><label>映像の解像度</label><select id="sRes"><option value="720">720p</option><option value="1080" selected>1080p</option><option value="1440">1440p</option></select></div>
     <div><label>フレームレート</label><select id="sFps"><option>30</option><option>60</option></select></div>
@@ -139,7 +149,21 @@ dialog::backdrop{background:#000a}
 <script>
 const $=s=>document.querySelector(s),PFX='betsuhan-v1-',AL='ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 const RES={720:[1280,720],1080:[1920,1080],1440:[2560,1440]};
-const cfg={mic:'',cam:'',spk:'',res:1080,fps:30,br:4000,echo:true,ns:true,agc:false};
+const cfg={mic:'',cam:'',spk:'',res:1080,fps:30,br:4000,echo:true,ns:true,agc:false,facing:'user'};
+const COLORS=['#d6c7a1','#6fc2b0','#e0a458','#8fb8e8','#c58fe0','#e08fa8'];
+let myColor=(()=>{try{return localStorage.getItem('pms-color')}catch(_){}})()||COLORS[0];
+const rgb=c=>{const n=parseInt(c.slice(1),16);return[n>>16,(n>>8)&255,n&255]};
+const lum=c=>{const f=v=>{v/=255;return v<=.03928?v/12.92:((v+.055)/1.055)**2.4},[r,g,b]=rgb(c);return .2126*f(r)+.7152*f(g)+.0722*f(b)};
+const hex=a=>'#'+a.map(v=>Math.round(v).toString(16).padStart(2,'0')).join('');
+const onColor=c=>lum(c)>.4?'#14110a':'#ffffff';
+function readable(c){let x=c;for(let i=0;i<8&&lum(x)<.22;i++)x=hex(rgb(x).map(v=>v+(255-v)*.18));return x}
+function setTileColor(el,c){el.style.setProperty('--c',c);el.style.setProperty('--on',onColor(c))}
+function paintTheme(c){myColor=c;const t=readable(c),r=document.documentElement.style;r.setProperty('--sand',t);r.setProperty('--on',onColor(t));try{localStorage.setItem('pms-color',c)}catch(_){}}
+function setMyColor(c){paintTheme(c);if(peers.self&&peers.self.el){setTileColor(peers.self.el,c);broadcast({t:'color',color:c});recolorMarks()}}
+function swatches(el,pick){el.innerHTML='';
+  COLORS.forEach(c=>{const b=document.createElement('button');b.type='button';b.className='sw'+(c===myColor?' sel':'');b.style.background=c;b.setAttribute('aria-label','テーマカラー '+c);b.onclick=()=>pick(c);el.append(b)});
+  const i=document.createElement('input');i.type='color';i.value=myColor;i.className='swc';i.setAttribute('aria-label','好きな色を選ぶ');i.oninput=()=>pick(i.value,true);el.append(i)}
+function renderSw(){['#sw1','#sw2'].forEach(id=>swatches($(id),(c,keep)=>{setMyColor(c);if(!keep)renderSw()}))}
 let peer,myId,code,host=false,myName='',peers={},local={mic:null,cam:null,screen:null},muted=false,watch=[],actx;
 
 let focusEl=null;
@@ -187,7 +211,7 @@ function setupPeer(){
 function showRoom(){
   $('#lobby').classList.add('hide');$('#room').classList.remove('hide');$('#rcode').textContent='回線 '+code;
   history.replaceState(null,'','#'+code);
-  const t=mkTile('self',myName+'(自分)');t.el.classList.add('self');watchStream(local.mic,t.el);
+  const t=mkTile('self',myName+'(自分)');t.el.classList.add('self');setTileColor(t.el,myColor);watchStream(local.mic,t.el);
 }
 function link(id){if(peers[id]||id===myId||!peer||peer.disconnected||peer.destroyed)return;
   if(pending[id]&&Date.now()-pending[id]<10000)return;pending[id]=Date.now();
@@ -198,12 +222,13 @@ function reset(p){Object.values(p.out).concat(Object.values(p.inc)).forEach(c=>c
 function sendAllTo(id){['mic','cam','screen'].forEach(k=>local[k]&&callTo(id,k,local[k]))}
 function onData(c,inc){const id=c.peer;
   c.on('open',()=>{delete pending[id];const old=peers[id];if(inc&&old&&old.data&&old.data!==c)reset(old);
-    const p=ensure(id);p.data=c;p.t0=Date.now();everConn=true;c.send({t:'hello',name:myName,mute:muted});if(mine)c.send({t:'loc',...mine});sendAllTo(id)});
+    const p=ensure(id);p.data=c;p.t0=Date.now();everConn=true;c.send({t:'hello',name:myName,mute:muted,color:myColor});if(mine)c.send({t:'loc',...mine});sendAllTo(id)});
   c.on('data',m=>{const p=ensure(id);
     if(m.t==='hello'){p.name=m.name;p.nm.textContent=m.name;p.av.textContent=[...m.name][0];p.nm.classList.toggle('mu',!!m.mute);
       if(host)c.send({t:'roster',ids:Object.keys(peers).filter(x=>x!==id&&x!=='self')})}
     if(m.t==='roster')m.ids.forEach(link);
     if(m.t==='st')p.nm.classList.toggle('mu',!!m.mute);
+    if(m.color&&(m.t==='hello'||m.t==='color')){p.color=m.color;setTileColor(p.el,m.color);if(p.scr)setTileColor(p.scr,m.color);recolorMarks()}
     if(m.t==='loc'){if(m.off){p.nm.classList.remove('lc');delMark(id)}else{p.nm.classList.add('lc');setMark(id,p.name,m)}}
     if(m.t==='need'){Object.values(p.out).forEach(x=>x.close());p.out={};sendAllTo(id)}});
   const gone=()=>{delete pending[id];if(peers[id]&&peers[id].data===c)drop(id)};
@@ -239,16 +264,16 @@ function onCall(c){const kind=c.metadata.kind,p=ensure(c.peer);c.answer(undefine
   c.on('stream',s=>{try{c.peerConnection.getReceivers().forEach(r=>r.jitterBufferTarget=kind==='mic'?20:0)}catch(_){}
     if(kind==='mic'){const a=new Audio();a.autoplay=true;a.srcObject=s;if(cfg.spk&&a.setSinkId)a.setSinkId(cfg.spk).catch(()=>{});p.audio=a;watchStream(s,p.el)}
     if(kind==='cam'){p.vid.srcObject=s;p.vid.hidden=false}
-    if(kind==='screen'){const t=mkTile(c.peer+':s',p.name+' の画面');t.el.classList.add('screen');t.av.remove();t.vid.hidden=false;t.vid.muted=false;t.vid.srcObject=s;p.scr=t.el;$('#grid').prepend(t.el);focusEl=t.el;refreshFocus()}});
+    if(kind==='screen'){const t=mkTile(c.peer+':s',p.name+' の画面');t.el.classList.add('screen');p.color&&setTileColor(t.el,p.color);t.av.remove();t.vid.hidden=false;t.vid.muted=false;t.vid.srcObject=s;p.scr=t.el;$('#grid').prepend(t.el);focusEl=t.el;refreshFocus()}});
   c.on('close',()=>{if(p.inc[kind]!==c)return;delete p.inc[kind];if(kind==='cam')p.vid.hidden=true;if(kind==='screen'&&p.scr){if(focusEl===p.scr)focusEl=null;p.scr.remove();p.scr=null;refreshFocus()}})}
 function drop(id){const p=peers[id];if(!p)return;Object.values(p.out).concat(Object.values(p.inc)).forEach(c=>c.close());
   delMark(id);if(focusEl===p.el||focusEl===p.scr)focusEl=null;p.el.remove();p.scr&&p.scr.remove();refreshFocus();p.audio&&(p.audio.srcObject=null);delete peers[id]}
 function mkTile(id,name){const el=document.createElement('div');el.className='tile';
-  el.innerHTML='<video autoplay playsinline muted hidden></video><span class="av"></span><span class="nm"></span><button class="zb" type="button" aria-label="拡大・縮小"></button><button class="fs" type="button">全画面</button>';
+  el.innerHTML='<video autoplay playsinline muted hidden></video><span class="av"></span><span class="nm"></span><button class="zb" type="button" aria-label="拡大・縮小"></button><button class="fs" type="button">全画面</button><button class="fl" type="button">カメラ切替</button>';
   const r={el,vid:el.children[0],av:el.children[1],nm:el.children[2]};r.nm.textContent=name;r.av.textContent=[...name][0]||'?';$('#grid').append(el);
   const full=()=>{el.requestFullscreen?el.requestFullscreen():r.vid.webkitEnterFullscreen&&r.vid.webkitEnterFullscreen()};
   el.onclick=()=>setFocus(el);el.ondblclick=full;
-  el.querySelector('.zb').onclick=e=>{e.stopPropagation();setFocus(el)};el.querySelector('.fs').onclick=e=>{e.stopPropagation();full()};
+  el.querySelector('.zb').onclick=e=>{e.stopPropagation();setFocus(el)};el.querySelector('.fs').onclick=e=>{e.stopPropagation();full()};el.querySelector('.fl').onclick=e=>{e.stopPropagation();flipCam()};
   if(id==='self')peers.self=Object.assign(peers.self||{},r);return r}
 function watchStream(s,el){actx=actx||new AudioContext();const an=actx.createAnalyser();an.fftSize=512;actx.createMediaStreamSource(s).connect(an);watch.push({an,el,buf:new Uint8Array(an.fftSize)})}
 setInterval(()=>watch.forEach(w=>{w.an.getByteTimeDomainData(w.buf);let m=0;for(const v of w.buf)m=Math.max(m,Math.abs(v-128));if(m>14)w.t=Date.now();const sp=Date.now()-(w.t||0)<350&&!(w.el.classList.contains('self')&&muted);w.el.classList.toggle('speaking',sp);const q=w.el._p;if(q&&q.scr)q.scr.classList.toggle('speaking',sp)}),100);
@@ -258,10 +283,20 @@ function broadcast(m){Object.values(peers).forEach(p=>p.data&&p.data.open&&p.dat
 function sendKind(k,s){Object.keys(peers).forEach(id=>id!=='self'&&callTo(id,k,s))}
 function stopKind(k){const s=local[k];if(!s)return;s.getTracks().forEach(t=>t.stop());Object.values(peers).forEach(p=>p.out&&p.out[k]&&p.out[k].close());local[k]=null}
 $('#bMic').onclick=e=>{muted=!muted;local.mic.getAudioTracks().forEach(t=>t.enabled=!muted);const b=e.currentTarget;b.classList.toggle('off',muted);b.classList.toggle('x',muted);b.classList.toggle('on',!muted);peers.self.nm.classList.toggle('mu',muted);broadcast({t:'st',mute:muted})};
-async function camOn(){const[w,h]=RES[cfg.res];
-  try{local.cam=await navigator.mediaDevices.getUserMedia({video:{deviceId:cfg.cam?{exact:cfg.cam}:undefined,width:{ideal:w},height:{ideal:h},frameRate:{ideal:cfg.fps}}})}catch(e){return toast('カメラを使用できません')}
-  local.cam.getVideoTracks()[0].contentHint='motion';const s=peers.self;s.vid.srcObject=local.cam;s.vid.hidden=false;sendKind('cam',local.cam);$('#bCam').classList.add('on');$('#bCam').classList.remove('x')}
-function camOff(){stopKind('cam');peers.self.vid.hidden=true;$('#bCam').classList.remove('on');$('#bCam').classList.add('x')}
+const camC=exact=>{const[w,h]=RES[cfg.res],v={width:{ideal:w},height:{ideal:h},frameRate:{ideal:cfg.fps}};
+  if(cfg.cam)v.deviceId={exact:cfg.cam};else v.facingMode=exact?{exact:cfg.facing}:{ideal:cfg.facing};return{video:v}};
+const isFront=t=>{const fm=(t.getSettings&&t.getSettings().facingMode)||'';return fm?fm!=='environment':!/back|rear|environment|背面/i.test(t.label)};
+async function getCam(){try{return await navigator.mediaDevices.getUserMedia(camC(true))}catch(e){return await navigator.mediaDevices.getUserMedia(camC(false))}}
+function showSelfCam(){const s=peers.self,t=local.cam.getVideoTracks()[0];t.contentHint='motion';s.vid.srcObject=local.cam;s.vid.hidden=false;s.el.classList.add('camon');s.el.classList.toggle('mir',isFront(t))}
+async function camOn(){try{local.cam=await getCam()}catch(e){return toast('カメラを使用できません')}
+  showSelfCam();sendKind('cam',local.cam);$('#bCam').classList.add('on');$('#bCam').classList.remove('x')}
+async function flipCam(){if(!local.cam)return;cfg.cam='';const was=cfg.facing;cfg.facing=was==='user'?'environment':'user';
+  local.cam.getTracks().forEach(t=>t.stop());
+  try{local.cam=await getCam()}catch(e){cfg.facing=was;try{local.cam=await getCam()}catch(_){camOff();return toast('カメラを切り替えられません')}toast('切り替え先のカメラが見つかりません')}
+  const nt=local.cam.getVideoTracks()[0];
+  Object.values(peers).forEach(p=>p.out&&p.out.cam&&p.out.cam.peerConnection.getSenders().forEach(x=>x.track&&x.track.kind==='video'&&x.replaceTrack(nt)));
+  showSelfCam()}
+function camOff(){stopKind('cam');peers.self.vid.hidden=true;peers.self.el.classList.remove('camon');$('#bCam').classList.remove('on');$('#bCam').classList.add('x')}
 $('#bCam').onclick=()=>local.cam?camOff():camOn();
 $('#bScr').onclick=async()=>{
   if(local.screen){stopKind('screen');$('#bScr').classList.remove('on');return}
@@ -277,9 +312,11 @@ function leave(){leaving=true;clearTimeout(rt);Object.keys(peers).forEach(id=>id
 $('#bLeave').onclick=leave;
 
 // 位置情報(参加者の同意のうえで共有。いつでも停止可能)
-let map,mtile,mk={},mine=null,watchId=null,lastSend=0;
+let map,mtile,mk={},mine=null,watchId=null,lastSend=0,gpsWarn=false;
+const kf={var:-1};
 const COL=['#6fc2b0','#d6c7a1','#e0a458','#8fb8e8','#c58fe0','#e08fa8'];
-const colorOf=id=>id==='me'?'#ffffff':COL[[...id].reduce((a,c)=>a+c.charCodeAt(0),0)%COL.length];
+const colorOf=id=>id==='me'?myColor:((peers[id]&&peers[id].color)||COL[[...id].reduce((a,c)=>a+c.charCodeAt(0),0)%COL.length]);
+function recolorMarks(){Object.entries(mk).forEach(([id,m])=>{const c=colorOf(id);m.setStyle({fillColor:c});m._c&&m._c.setStyle({color:c,fillColor:c})})}
 function dist(a,b){const R=6371e3,r=x=>x*Math.PI/180,dl=r(b.lat-a.lat),dg=r(b.lng-a.lng),h=Math.sin(dl/2)**2+Math.cos(r(a.lat))*Math.cos(r(b.lat))*Math.sin(dg/2)**2;return 2*R*Math.asin(Math.sqrt(h))}
 const fmtD=m=>m<1000?Math.round(m)+'m':(m/1000).toFixed(1)+'km';
 function ensureMap(){if(map)return;
@@ -289,24 +326,33 @@ function ensureMap(){if(map)return;
   map=L.map(mtile.firstChild).setView([35.68,139.76],15);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(map);
   mtile.querySelector('.zb').onclick=()=>setFocus(mtile);mtile.querySelector('.fs').onclick=fitAll}
-function setMark(id,name,d){ensureMap();let m=mk[id];
-  if(!m){m=mk[id]=L.circleMarker([d.lat,d.lng],{radius:9,color:'#0f1519',weight:3,fillColor:colorOf(id),fillOpacity:1}).addTo(map).bindTooltip('',{permanent:true,direction:'top',offset:[0,-8]});fitAll()}
-  m.setLatLng([d.lat,d.lng]);m._nm=name;m._d=d;labels();locUI()}
-function labels(){const me=mk.me&&mk.me._d;Object.entries(mk).forEach(([id,m])=>m.setTooltipContent(m._nm+(me&&id!=='me'?' '+fmtD(dist(me,m._d)):'')))}
-function delMark(id){const m=mk[id];if(!m)return;m.remove();delete mk[id];
+function setMark(id,name,d){ensureMap();let m=mk[id];const col=colorOf(id),ll=[d.lat,d.lng],r=d.acc&&d.acc<=300?d.acc:0;
+  if(!m){m=mk[id]=L.circleMarker(ll,{radius:9,color:'#0f1519',weight:3,fillColor:col,fillOpacity:1}).addTo(map).bindTooltip('',{permanent:true,direction:'top',offset:[0,-8]});
+    m._c=L.circle(ll,{radius:r,color:col,weight:1,opacity:.6,fillColor:col,fillOpacity:.12,interactive:false}).addTo(map);fitAll()}
+  m.setLatLng(ll);m._c.setLatLng(ll).setRadius(r);m._nm=name;m._d=d;labels();locUI()}
+function labels(){const me=mk.me&&mk.me._d;Object.entries(mk).forEach(([id,m])=>m.setTooltipContent(m._nm+(me&&id!=='me'?' '+fmtD(dist(me,m._d)):'')+(m._d.acc?' ±'+Math.round(m._d.acc)+'m':'')))}
+function delMark(id){const m=mk[id];if(!m)return;m._c&&m._c.remove();m.remove();delete mk[id];
   if(!Object.keys(mk).length&&map){if(focusEl===mtile)focusEl=null;map.remove();mtile.remove();map=mtile=null;refreshFocus()}else labels();locUI()}
 function fitAll(){const pts=Object.values(mk).map(m=>m.getLatLng());if(!pts.length||!mtile||!mtile.offsetWidth)return;pts.length===1?map.setView(pts[0],17):map.fitBounds(L.latLngBounds(pts),{padding:[50,50],maxZoom:18})}
 function locUI(){$('#locbar').classList.toggle('hide',!(Object.keys(mk).length&&focusEl!==mtile))}
 $('#locbar').onclick=()=>{if(mtile){focusEl=mtile;refreshFocus()}};
-function stopLoc(){if(watchId!==null)navigator.geolocation.clearWatch(watchId);watchId=null;mine=null;broadcast({t:'loc',off:true});delMark('me');
+// 測位の精度向上:粗い測位を除外し、精度で重み付けしたカルマンフィルタでブレを抑える
+function onFix(g){const c=g.coords,ts=g.timestamp||Date.now(),acc=Math.max(c.accuracy||50,1);
+  if(kf.var>=0&&acc>150&&mine&&mine.acc<60)return;
+  if(kf.var<0){kf.lat=c.latitude;kf.lng=c.longitude;kf.var=acc*acc}
+  else{const q=Math.max(3,c.speed||0);kf.var+=Math.max((ts-kf.ts)/1000,0)*q*q;
+    const K=kf.var/(kf.var+acc*acc);kf.lat+=K*(c.latitude-kf.lat);kf.lng+=K*(c.longitude-kf.lng);kf.var*=1-K}
+  kf.ts=ts;mine={lat:kf.lat,lng:kf.lng,acc:Math.sqrt(kf.var)};
+  setMark('me',myName+'(自分)',mine);const n=Date.now();if(n-lastSend>1000){lastSend=n;broadcast({t:'loc',...mine})}}
+function stopLoc(){if(watchId!==null)navigator.geolocation.clearWatch(watchId);watchId=null;mine=null;kf.var=-1;broadcast({t:'loc',off:true});delMark('me');
   const b=$('#bLoc');b.classList.remove('on');b.classList.add('x');peers.self.nm.classList.remove('lc')}
 $('#bLoc').onclick=()=>{
   if(watchId!==null)return stopLoc();
   if(!navigator.geolocation)return toast('この端末では位置情報を使えません');
   if(!confirm('この回線の参加者全員に、あなたの現在地をリアルタイムで共有します。いつでも停止できます。よろしいですか?'))return;
-  watchId=navigator.geolocation.watchPosition(g=>{const c=g.coords;mine={lat:c.latitude,lng:c.longitude,acc:c.accuracy};
-    setMark('me',myName+'(自分)',mine);const n=Date.now();if(n-lastSend>1000){lastSend=n;broadcast({t:'loc',...mine})}},
-    er=>{toast(er.code===1?'位置情報の使用が許可されていません':'位置情報を取得できません');stopLoc()},{enableHighAccuracy:true,maximumAge:1000,timeout:20000});
+  gpsWarn=false;kf.var=-1;
+  watchId=navigator.geolocation.watchPosition(onFix,er=>{if(er.code===1){toast('位置情報の使用が許可されていません');stopLoc()}else if(!gpsWarn){gpsWarn=true;toast('GPSを探しています…')}},
+    {enableHighAccuracy:true,maximumAge:0,timeout:30000});
   const b=$('#bLoc');b.classList.add('on');b.classList.remove('x');peers.self.nm.classList.add('lc')};
 
 // 設定
@@ -329,6 +375,7 @@ setInterval(async()=>{let rtt=null,loss=0;
   const h=$('#hud');if(rtt===null){h.innerHTML='<i></i>相手を待っています';return}
   const bad=rtt>150||loss>5;h.innerHTML=`<i style="background:${bad?'var(--bad)':'var(--ok)'}"></i>遅延 ${rtt.toFixed(0)}ms ・ 損失 ${loss.toFixed(1)}%`},2000);
 
+paintTheme(myColor);renderSw();
 $('#create').onclick=()=>enter(true);$('#join').onclick=()=>enter(false);
 if(location.hash.length>1){$('#code').value=location.hash.slice(1).toUpperCase();$('#name').focus()}
 </script>
