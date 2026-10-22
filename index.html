@@ -119,7 +119,7 @@ dialog::backdrop{background:#000a}
 </style>
 </head>
 <body>
-<div id="ver">Ver.26.10.2</div>
+<div id="ver">Ver.26.10.3</div>
 
 <section id="lobby">
   <h1><b>P</b>uchigo<b>M</b>assage<b>S</b>ervice</h1>
@@ -194,7 +194,7 @@ dialog::backdrop{background:#000a}
       <label class="chk"><input type="checkbox" id="bListen" checked>他の人が流すBGMも聴く</label>
       <label class="chk"><input type="checkbox" id="bSync" checked>YouTubeを通話中の全員に同期して流す(オフなら自分の端末だけでそのまま再生)</label>
       <label class="chk"><input type="checkbox" id="bMute">BGM中は自分のマイクを自動でミュート(エコー確認用)</label>
-      <label class="chk"><input type="checkbox" id="bNs" checked>BGM中は自分のマイクのノイズ除去を切る(歌がこもるとき)</label>
+      <label class="chk"><input type="checkbox" id="bNs" checked>BGM中はエコー除去・ノイズ除去を自動でオフ(スピーカーだとエコーが出ます。イヤホン推奨)</label>
       <p style="color:var(--dim);font-size:13px;margin-top:10px">再生すると通話中の全員の端末で同時に流れます(音量は各自で調整できます)。スピーカーだとマイクに入るので、イヤホンがおすすめです。</p>
     </details>
   </div>
@@ -249,7 +249,7 @@ const audioC=()=>({deviceId:cfg.mic?{exact:cfg.mic}:undefined,echoCancellation:c
 
 // Opus設定:FEC有効・DTX無効・高ビットレート
 function opus(stereo,music){return sdp=>{const m=sdp.match(/a=rtpmap:(\d+) opus\/48000/);if(!m)return sdp;
-  return sdp.replace(new RegExp('a=fmtp:'+m[1]+' .*'),'a=fmtp:'+m[1]+' minptime='+(music?20:10)+';useinbandfec=1;usedtx=0;stereo='+(stereo?1:0)+';sprop-stereo='+(stereo?1:0)+';maxaveragebitrate='+(music?256000:stereo?192000:128000)+';maxplaybackrate=48000;sprop-maxcapturerate=48000')}}
+  return sdp.replace(new RegExp('a=fmtp:'+m[1]+' .*'),'a=fmtp:'+m[1]+' minptime='+(music?20:10)+';useinbandfec='+(music?0:1)+';usedtx=0;stereo='+(stereo?1:0)+';sprop-stereo='+(stereo?1:0)+';maxaveragebitrate='+(music?320000:stereo?192000:128000)+';maxplaybackrate=48000;sprop-maxcapturerate=48000')}}
 
 let shown=false,leaving=false,rt,everConn=false,wl=null,custom=false,pending={};
 const OPT={config:{iceServers:[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun1.l.google.com:19302'}]}};
@@ -332,7 +332,7 @@ function callTo(id,kind,stream){const p=ensure(id);if(p.out[kind])return;
   c.on('close',()=>{if(p.out[kind]===c)delete p.out[kind]});[600,2500].forEach(d=>setTimeout(()=>tune(c,kind),d))}
 function tune(c,kind){try{c.peerConnection.getSenders().forEach(async s=>{if(!s.track)return;
   const q=s.getParameters();if(!q.encodings||!q.encodings.length)q.encodings=[{}];const e=q.encodings[0];
-  if(s.track.kind==='audio'){e.maxBitrate=kind==='music'?256000:kind==='screen'?192000:128000;e.priority='high';e.networkPriority='high'}
+  if(s.track.kind==='audio'){e.maxBitrate=kind==='music'?320000:kind==='screen'?192000:128000;e.priority='high';e.networkPriority='high'}
   else{e.maxBitrate=cfg.br*1000*(kind==='screen'?2:1);e.maxFramerate=cfg.fps;q.degradationPreference=kind==='screen'?'maintain-resolution':'maintain-framerate'}
   try{await s.setParameters(q)}catch(_){}})}catch(_){}}
 function onCall(c){const kind=c.metadata.kind,p=ensure(c.peer);c.answer(undefined,{sdpTransform:opus(kind==='screen'||kind==='music',kind==='music')});p.inc[kind]=c;
@@ -351,7 +351,7 @@ function mkTile(id,name){const el=document.createElement('div');el.className='ti
   el.onclick=()=>setFocus(el);el.ondblclick=full;
   el.querySelector('.zb').onclick=e=>{e.stopPropagation();setFocus(el)};el.querySelector('.fs').onclick=e=>{e.stopPropagation();full()};el.querySelector('.fl').onclick=e=>{e.stopPropagation();flipCam()};
   if(id==='self')peers.self=Object.assign(peers.self||{},r);return r}
-function watchStream(s,el){actx=actx||new AudioContext();const an=actx.createAnalyser();an.fftSize=512;actx.createMediaStreamSource(s).connect(an);watch.push({an,el,buf:new Uint8Array(an.fftSize)})}
+function watchStream(s,el){actx=actx||new AudioContext({sampleRate:48000});const an=actx.createAnalyser();an.fftSize=512;actx.createMediaStreamSource(s).connect(an);watch.push({an,el,buf:new Uint8Array(an.fftSize)})}
 setInterval(()=>watch.forEach(w=>{w.an.getByteTimeDomainData(w.buf);let m=0;for(const v of w.buf)m=Math.max(m,Math.abs(v-128));if(m>14)w.t=Date.now();const sp=Date.now()-(w.t||0)<350&&!(w.el.classList.contains('self')&&muted);w.el.classList.toggle('speaking',sp);const q=w.el._p;if(q&&q.scr)q.scr.classList.toggle('speaking',sp)}),100);
 
 // 操作
@@ -496,7 +496,7 @@ setInterval(()=>{if(!ready())return;try{const d=$('#bDuck').checked&&document.qu
 // 自分の音声ファイルを通話で全員に送る(WebRTCで高音質ステレオ送信)
 let aSrc=null,aGain=null,aDest=null,musicName='';
 const aFile=$('#aFile');
-function loadMusic(blob,name){actx=actx||new AudioContext();actx.resume();
+function loadMusic(blob,name){actx=actx||new AudioContext({sampleRate:48000});actx.resume();
   if(aFile.src)URL.revokeObjectURL(aFile.src);
   aFile.src=URL.createObjectURL(blob);aFile.loop=$('#bLoop').checked;aFile.classList.remove('hide');$('#bFileOff').classList.remove('hide');
   if(!aSrc){aSrc=actx.createMediaElementSource(aFile);aGain=actx.createGain();aGain.gain.value=+$('#bVol').value/100;aSrc.connect(aGain);aGain.connect(actx.destination)}
@@ -563,7 +563,7 @@ let lastAct=null,lastTr=null,autoMuted=false;
 setInterval(()=>{const t=local.mic&&local.mic.getAudioTracks()[0];if(!t)return;
   const bgm=!!((ready()&&yt.getPlayerState()===1)||(aFile.src&&!aFile.paused)||Object.values(peers).some(p=>p.music&&!p.music.muted));
   const act=$('#bNs').checked&&bgm;
-  if(act!==lastAct||t!==lastTr){lastAct=act;lastTr=t;t.applyConstraints({noiseSuppression:act?false:cfg.ns,autoGainControl:cfg.agc}).catch(()=>{})}
+  if(act!==lastAct||t!==lastTr){lastAct=act;lastTr=t;t.applyConstraints({echoCancellation:act?false:cfg.echo,noiseSuppression:act?false:cfg.ns,autoGainControl:act?false:cfg.agc}).catch(()=>{})}
   const am=$('#bMute').checked&&bgm;
   if(am&&!muted&&!autoMuted){autoMuted=true;muted=true;t.enabled=false;micUI(true)}
   else if(!am&&autoMuted){autoMuted=false;muted=false;t.enabled=true;micUI(false)}},500);
