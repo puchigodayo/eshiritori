@@ -100,6 +100,8 @@ nav{gap:4px}
 .sr div{min-width:0}
 .sr b{font-size:13px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .sr span{color:var(--dim);font-size:12px}
+#ver{position:fixed;top:calc(env(safe-area-inset-top) + 3px);left:10px;z-index:20;font-size:11px;line-height:1;color:var(--dim);pointer-events:none;letter-spacing:.04em}
+#room{padding-top:16px}
 #grid.focus{display:flex;flex-wrap:wrap;align-content:flex-start;overflow:auto}
 #grid.focus .tile.big{order:-1;flex:1 0 100%;width:100%;height:calc(100% - 100px);min-height:200px;aspect-ratio:auto;max-height:none}
 #grid.focus .big video{object-fit:contain}
@@ -115,6 +117,7 @@ dialog::backdrop{background:#000a}
 </style>
 </head>
 <body>
+<div id="ver">Ver.26.10.1</div>
 
 <section id="lobby">
   <h1><b>P</b>uchigo<b>M</b>assage<b>S</b>ervice</h1>
@@ -185,7 +188,7 @@ dialog::backdrop{background:#000a}
     <label for="bVol" style="margin-top:4px">音量</label><input type="range" id="bVol" min="0" max="100" value="30">
     <details><summary style="color:var(--dim);cursor:pointer;min-height:44px;display:flex;align-items:center">オプション</summary>
       <label class="chk"><input type="checkbox" id="bLoop" checked>くり返す</label>
-      <label class="chk"><input type="checkbox" id="bDuck" checked>誰かが話している間は音量を下げる</label>
+      <label class="chk"><input type="checkbox" id="bDuck">誰かが話している間は音量を下げる</label>
       <label class="chk"><input type="checkbox" id="bListen" checked>他の人が流すBGMも聴く</label>
       <p style="color:var(--dim);font-size:13px;margin-top:10px">再生すると通話中の全員の端末で同時に流れます(音量は各自で調整できます)。スピーカーだとマイクに入るので、イヤホンがおすすめです。</p>
     </details>
@@ -240,8 +243,8 @@ const gen=()=>Array.from({length:6},()=>AL[Math.random()*AL.length|0]).join('');
 const audioC=()=>({deviceId:cfg.mic?{exact:cfg.mic}:undefined,echoCancellation:cfg.echo,noiseSuppression:cfg.ns,autoGainControl:cfg.agc,channelCount:1,sampleRate:48000,latency:0.01});
 
 // Opus設定:FEC有効・DTX無効・高ビットレート
-function opus(stereo){return sdp=>{const m=sdp.match(/a=rtpmap:(\d+) opus\/48000/);if(!m)return sdp;
-  return sdp.replace(new RegExp('a=fmtp:'+m[1]+' .*'),'a=fmtp:'+m[1]+' minptime=10;useinbandfec=1;usedtx=0;stereo='+(stereo?1:0)+';sprop-stereo='+(stereo?1:0)+';maxaveragebitrate='+(stereo?192000:128000)+';maxplaybackrate=48000')}}
+function opus(stereo,music){return sdp=>{const m=sdp.match(/a=rtpmap:(\d+) opus\/48000/);if(!m)return sdp;
+  return sdp.replace(new RegExp('a=fmtp:'+m[1]+' .*'),'a=fmtp:'+m[1]+' minptime='+(music?20:10)+';useinbandfec=1;usedtx=0;stereo='+(stereo?1:0)+';sprop-stereo='+(stereo?1:0)+';maxaveragebitrate='+(music?256000:stereo?192000:128000)+';maxplaybackrate=48000;sprop-maxcapturerate=48000')}}
 
 let shown=false,leaving=false,rt,everConn=false,wl=null,custom=false,pending={};
 const OPT={config:{iceServers:[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun1.l.google.com:19302'}]}};
@@ -320,15 +323,15 @@ function recover(){if(!shown||leaving||document.hidden)return;
 document.addEventListener('visibilitychange',recover);['pageshow','online','focus'].forEach(e=>addEventListener(e,recover));
 setInterval(()=>{if(!shown||leaving||document.hidden||!peer)return;if(peer.destroyed)again(0);else if(peer.disconnected)peer.reconnect();else relinkAll()},5000);
 function callTo(id,kind,stream){const p=ensure(id);if(p.out[kind])return;
-  const c=peer.call(id,stream,{metadata:{kind},sdpTransform:opus(kind==='screen'||kind==='music')});p.out[kind]=c;
+  const c=peer.call(id,stream,{metadata:{kind},sdpTransform:opus(kind==='screen'||kind==='music',kind==='music')});p.out[kind]=c;
   c.on('close',()=>{if(p.out[kind]===c)delete p.out[kind]});[600,2500].forEach(d=>setTimeout(()=>tune(c,kind),d))}
 function tune(c,kind){try{c.peerConnection.getSenders().forEach(async s=>{if(!s.track)return;
   const q=s.getParameters();if(!q.encodings||!q.encodings.length)q.encodings=[{}];const e=q.encodings[0];
-  if(s.track.kind==='audio'){e.maxBitrate=kind==='screen'||kind==='music'?192000:128000;e.priority='high';e.networkPriority='high'}
+  if(s.track.kind==='audio'){e.maxBitrate=kind==='music'?256000:kind==='screen'?192000:128000;e.priority='high';e.networkPriority='high'}
   else{e.maxBitrate=cfg.br*1000*(kind==='screen'?2:1);e.maxFramerate=cfg.fps;q.degradationPreference=kind==='screen'?'maintain-resolution':'maintain-framerate'}
   try{await s.setParameters(q)}catch(_){}})}catch(_){}}
-function onCall(c){const kind=c.metadata.kind,p=ensure(c.peer);c.answer(undefined,{sdpTransform:opus(kind==='screen'||kind==='music')});p.inc[kind]=c;
-  c.on('stream',s=>{try{c.peerConnection.getReceivers().forEach(r=>r.jitterBufferTarget=kind==='mic'?20:kind==='music'?80:0)}catch(_){}
+function onCall(c){const kind=c.metadata.kind,p=ensure(c.peer);c.answer(undefined,{sdpTransform:opus(kind==='screen'||kind==='music',kind==='music')});p.inc[kind]=c;
+  c.on('stream',s=>{try{c.peerConnection.getReceivers().forEach(r=>r.jitterBufferTarget=kind==='mic'?20:kind==='music'?150:0)}catch(_){}
     if(kind==='mic'){const a=new Audio();a.autoplay=true;a.srcObject=s;if(cfg.spk&&a.setSinkId)a.setSinkId(cfg.spk).catch(()=>{});p.audio=a;watchStream(s,p.el)}
     if(kind==='cam'){p.vid.srcObject=s;p.vid.hidden=false}
     if(kind==='music'){const a=new Audio();a.autoplay=true;a.srcObject=s;if(cfg.spk&&a.setSinkId)a.setSinkId(cfg.spk).catch(()=>{});p.music=a}
@@ -491,7 +494,7 @@ function loadMusic(blob,name){actx=actx||new AudioContext();actx.resume();
   aFile.src=URL.createObjectURL(blob);aFile.loop=$('#bLoop').checked;aFile.classList.remove('hide');$('#bFileOff').classList.remove('hide');
   if(!aSrc){aSrc=actx.createMediaElementSource(aFile);aGain=actx.createGain();aGain.gain.value=+$('#bVol').value/100;aSrc.connect(aGain);aGain.connect(actx.destination)}
   stopKind('music');aDest&&aSrc.disconnect(aDest);
-  aDest=actx.createMediaStreamDestination();aSrc.connect(aDest);local.music=aDest.stream;sendKind('music',local.music);
+  aDest=actx.createMediaStreamDestination();aDest.stream.getAudioTracks()[0].contentHint='music';aSrc.connect(aDest);local.music=aDest.stream;sendKind('music',local.music);
   musicName=name;broadcast({t:'music',name});$('#bTitle').textContent='♪ '+name;aFile.play().catch(()=>{})}
 const baseName=n=>n.replace(/\.[^.]+$/,'');
 $('#bFile').onchange=async e=>{const f=e.target.files[0];if(!f)return;loadMusic(f,baseName(f.name));await saveHist(f);e.target.value=''};
