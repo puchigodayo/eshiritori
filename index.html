@@ -89,6 +89,8 @@ nav{gap:4px}
 .tab{flex:1}
 .tab.on{background:var(--sand);color:var(--on,#1a1710);border-color:var(--sand);font-weight:700}
 .bshare{position:sticky;bottom:-20px;background:var(--panel);border-top:1px solid var(--line);margin-top:14px;padding:10px 0 4px}
+#ysr{max-height:min(260px,36vh);overflow:auto;overscroll-behavior:contain;border:1px solid var(--line);border-radius:10px;padding:2px 6px 6px;margin-top:10px}
+#ysr:empty{display:none}
 #dBgm{max-height:88vh;overflow:auto}
 .lr{display:flex;gap:6px;margin-top:6px}
 .lr button{min-height:44px}
@@ -117,7 +119,7 @@ dialog::backdrop{background:#000a}
 </style>
 </head>
 <body>
-<div id="ver">Ver.26.10.1</div>
+<div id="ver">Ver.26.10.2</div>
 
 <section id="lobby">
   <h1><b>P</b>uchigo<b>M</b>assage<b>S</b>ervice</h1>
@@ -167,8 +169,8 @@ dialog::backdrop{background:#000a}
   <section id="tYt">
     <label for="bUrl" style="margin-top:0">曲名で検索、またはURL</label>
     <div class="row"><input id="bUrl" placeholder="曲名・アーティスト名、またはURL" autocomplete="off"><button id="bSearch" type="button">検索</button></div>
-    <div id="ysr"></div>
     <div class="row" style="margin-top:12px"><button class="main" id="bPlay">再生</button><button id="bPause">一時停止</button><button id="bStop">停止</button></div>
+    <div id="ysr"></div>
     <details style="margin-top:8px"><summary style="color:var(--dim);cursor:pointer;min-height:44px;display:flex;align-items:center">YouTube検索の設定</summary>
       <label for="yKey">YouTube Data API v3 のキー(任意)</label><input id="yKey" placeholder="AIza..." autocomplete="off">
       <p style="color:var(--dim);font-size:13px;margin-top:6px">未入力でも公開の検索サーバー経由で検索しますが、止まっていることがあります。確実に使うならキーを入れてください(無料枠で1日約100回検索できます)。</p></details>
@@ -190,6 +192,7 @@ dialog::backdrop{background:#000a}
       <label class="chk"><input type="checkbox" id="bLoop" checked>くり返す</label>
       <label class="chk"><input type="checkbox" id="bDuck">誰かが話している間は音量を下げる</label>
       <label class="chk"><input type="checkbox" id="bListen" checked>他の人が流すBGMも聴く</label>
+      <label class="chk"><input type="checkbox" id="bNs" checked>BGM中は自分のマイクのノイズ除去を切る(歌がこもるとき)</label>
       <p style="color:var(--dim);font-size:13px;margin-top:10px">再生すると通話中の全員の端末で同時に流れます(音量は各自で調整できます)。スピーカーだとマイクに入るので、イヤホンがおすすめです。</p>
     </details>
   </div>
@@ -551,6 +554,12 @@ aFile.onplay=()=>{if(ready()&&yt.getPlayerState()===1){if(bgmOwner)sendBgm('stop
 setInterval(()=>{const d=$('#bDuck').checked&&document.querySelector('.tile.speaking:not(.self)'),v=+$('#bVol').value/100*(d?.35:1),mute=!$('#bListen').checked;
   Object.values(peers).forEach(p=>{if(p.music){p.music.volume=Math.min(1,v);p.music.muted=mute}});if(aGain)aGain.gain.value=v},300);
 
+// BGMが流れている間はマイクのノイズ除去を切る(スピーカーから漏れたBGMが加工されて相手に届くのを防ぐ)
+let lastAct=null,lastTr=null;
+setInterval(()=>{const t=local.mic&&local.mic.getAudioTracks()[0];if(!t)return;
+  const act=$('#bNs').checked&&!!((ready()&&yt.getPlayerState()===1)||(aFile.src&&!aFile.paused)||Object.values(peers).some(p=>p.music&&!p.music.muted));
+  if(act===lastAct&&t===lastTr)return;lastAct=act;lastTr=t;
+  t.applyConstraints({noiseSuppression:act?false:cfg.ns,autoGainControl:cfg.agc}).catch(()=>{})},500);
 // BGM画面のタブ切り替え
 document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{
   document.querySelectorAll('.tab').forEach(t=>{const on=t===b;t.classList.toggle('on',on);$('#'+t.dataset.t).classList.toggle('hide',!on)})});
