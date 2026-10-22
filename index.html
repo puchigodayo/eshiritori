@@ -44,8 +44,8 @@ header b{font:700 22px "Shippori Mincho B1",serif;color:var(--sand);letter-spaci
 .nm{position:absolute;left:10px;bottom:8px;background:#0009;padding:2px 10px;border-radius:6px;font-size:13px}
 .nm.mu::after{content:" ・ミュート";color:var(--bad)}
 nav{display:flex;flex-wrap:nowrap;gap:6px;justify-content:center;padding:8px 8px calc(8px + env(safe-area-inset-bottom));border-top:1px solid var(--line)}
-.cb{flex:1 1 0;min-width:0;max-width:78px;height:62px;padding:6px 0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;white-space:nowrap;overflow:hidden;font-size:10px;line-height:1;letter-spacing:0}
-.cb svg{width:24px;height:24px;fill:currentColor;stroke:none;flex:none}
+.cb{flex:1 1 0;min-width:0;max-width:78px;height:72px;padding:6px 0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;white-space:nowrap;overflow:hidden;font-size:10px;line-height:1;letter-spacing:0}
+.cb svg{width:30px;height:30px;fill:currentColor;stroke:none;flex:none}
 .cb .sl{display:none;stroke:currentColor;stroke-width:2.5}
 .cb.x .sl{display:block}
 .cb.on{background:#6fc2b01f}
@@ -59,6 +59,17 @@ nav{display:flex;flex-wrap:nowrap;gap:6px;justify-content:center;padding:8px 8px
 .leaflet-tooltip-top:before{border-top-color:var(--sand)}
 .nm.lc::before{content:"● ";color:var(--ok)}
 nav{gap:4px}
+#locbar{margin:8px 12px 0;display:flex;align-items:center;gap:10px;width:calc(100% - 24px);min-height:44px;text-align:left;border-color:var(--ok)}
+#locbar i{width:10px;height:10px;border-radius:50%;background:var(--ok);flex:none}
+#locbar span{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#locbar b{color:var(--dim);font-weight:400;font-size:20px;line-height:1}
+.tile.map:not(.big){display:none}
+.tile.map.big .zb::before{content:'通話に戻る'}
+.tile.map .zb{width:84px}.tile.map .fs{right:100px}
+#room.mapmode .cb{height:44px}
+#room.mapmode .cb span{display:none}
+#room.mapmode .cb svg{width:20px;height:20px}
+#room.mapmode nav{padding-top:4px;padding-bottom:calc(4px + env(safe-area-inset-bottom))}
 #grid.focus{display:flex;flex-wrap:wrap;align-content:flex-start;overflow:auto}
 #grid.focus .tile.big{order:-1;flex:1 0 100%;width:100%;height:calc(100% - 100px);min-height:200px;aspect-ratio:auto;max-height:none}
 #grid.focus .big video{object-fit:contain}
@@ -94,6 +105,7 @@ dialog::backdrop{background:#000a}
     <button id="copy">リンクをコピー</button>
     <span id="hud"><i></i>接続待ち</span>
   </header>
+  <button id="locbar" class="hide" type="button" aria-label="位置情報の地図を開く"><i></i><span>位置情報は共有されています</span><b>›</b></button>
   <main id="grid"></main>
   <nav>
     <button class="cb on" id="bMic" aria-label="マイクのオン・オフ"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 14a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v5a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.9V21h2v-3.1A7 7 0 0 0 19 11z"/><line class="sl" x1="4" y1="4" x2="20" y2="20"/></svg><span>マイク</span></button>
@@ -131,7 +143,7 @@ const cfg={mic:'',cam:'',spk:'',res:1080,fps:30,br:4000,echo:true,ns:true,agc:fa
 let peer,myId,code,host=false,myName='',peers={},local={mic:null,cam:null,screen:null},muted=false,watch=[],actx;
 
 let focusEl=null;
-function refreshFocus(){const g=$('#grid');[...g.children].forEach(t=>t.classList.toggle('big',t===focusEl));g.classList.toggle('focus',!!focusEl);setTimeout(()=>map&&map.invalidateSize(),60)}
+function refreshFocus(){const g=$('#grid');[...g.children].forEach(t=>t.classList.toggle('big',t===focusEl));g.classList.toggle('focus',!!focusEl);$('#room').classList.toggle('mapmode',!!mtile&&focusEl===mtile);locUI();setTimeout(()=>{if(map){map.invalidateSize();if(focusEl===mtile)fitAll()}},80)}
 function setFocus(el){focusEl=focusEl===el?null:el;refreshFocus()}
 const toast=t=>{const e=document.createElement('div');e.id='toast';e.textContent=t;document.body.append(e);setTimeout(()=>e.remove(),2600)};
 const roomLink=()=>location.origin+location.pathname+'#'+code;
@@ -279,11 +291,13 @@ function ensureMap(){if(map)return;
   mtile.querySelector('.zb').onclick=()=>setFocus(mtile);mtile.querySelector('.fs').onclick=fitAll}
 function setMark(id,name,d){ensureMap();let m=mk[id];
   if(!m){m=mk[id]=L.circleMarker([d.lat,d.lng],{radius:9,color:'#0f1519',weight:3,fillColor:colorOf(id),fillOpacity:1}).addTo(map).bindTooltip('',{permanent:true,direction:'top',offset:[0,-8]});fitAll()}
-  m.setLatLng([d.lat,d.lng]);m._nm=name;m._d=d;labels()}
+  m.setLatLng([d.lat,d.lng]);m._nm=name;m._d=d;labels();locUI()}
 function labels(){const me=mk.me&&mk.me._d;Object.entries(mk).forEach(([id,m])=>m.setTooltipContent(m._nm+(me&&id!=='me'?' '+fmtD(dist(me,m._d)):'')))}
 function delMark(id){const m=mk[id];if(!m)return;m.remove();delete mk[id];
-  if(!Object.keys(mk).length&&map){if(focusEl===mtile)focusEl=null;map.remove();mtile.remove();map=mtile=null;refreshFocus()}else labels()}
-function fitAll(){const pts=Object.values(mk).map(m=>m.getLatLng());if(!pts.length)return;pts.length===1?map.setView(pts[0],17):map.fitBounds(L.latLngBounds(pts),{padding:[50,50],maxZoom:18})}
+  if(!Object.keys(mk).length&&map){if(focusEl===mtile)focusEl=null;map.remove();mtile.remove();map=mtile=null;refreshFocus()}else labels();locUI()}
+function fitAll(){const pts=Object.values(mk).map(m=>m.getLatLng());if(!pts.length||!mtile||!mtile.offsetWidth)return;pts.length===1?map.setView(pts[0],17):map.fitBounds(L.latLngBounds(pts),{padding:[50,50],maxZoom:18})}
+function locUI(){$('#locbar').classList.toggle('hide',!(Object.keys(mk).length&&focusEl!==mtile))}
+$('#locbar').onclick=()=>{if(mtile){focusEl=mtile;refreshFocus()}};
 function stopLoc(){if(watchId!==null)navigator.geolocation.clearWatch(watchId);watchId=null;mine=null;broadcast({t:'loc',off:true});delMark('me');
   const b=$('#bLoc');b.classList.remove('on');b.classList.add('x');peers.self.nm.classList.remove('lc')}
 $('#bLoc').onclick=()=>{
