@@ -77,6 +77,13 @@ nav{gap:4px}
 #room.mapmode .cb span{display:none}
 #room.mapmode .cb svg{width:20px;height:20px}
 #room.mapmode nav{padding-top:4px;padding-bottom:calc(4px + env(safe-area-inset-bottom))}
+.pl{position:absolute;left:8px;bottom:26px;z-index:5;min-height:0;height:36px;width:104px;padding:0;font-size:13px;white-space:nowrap;background:var(--ink);border-color:var(--sand)}
+.plist{position:absolute;left:8px;bottom:68px;z-index:5;width:min(280px,calc(100% - 16px));max-height:55%;overflow:auto;background:var(--ink);border:1px solid var(--line);border-radius:10px;padding:4px}
+.pr{display:flex;align-items:center;gap:10px;width:100%;min-height:44px;padding:4px 10px;border:0;background:transparent;text-align:left}
+.pr:hover{background:var(--panel)}
+.pr i{width:12px;height:12px;border-radius:50%;flex:none}
+.pr span{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pr b{color:var(--dim);font-weight:400;font-size:12px;white-space:nowrap}
 #grid.focus{display:flex;flex-wrap:wrap;align-content:flex-start;overflow:auto}
 #grid.focus .tile.big{order:-1;flex:1 0 100%;width:100%;height:calc(100% - 100px);min-height:200px;aspect-ratio:auto;max-height:none}
 #grid.focus .big video{object-fit:contain}
@@ -321,16 +328,29 @@ function dist(a,b){const R=6371e3,r=x=>x*Math.PI/180,dl=r(b.lat-a.lat),dg=r(b.ln
 const fmtD=m=>m<1000?Math.round(m)+'m':(m/1000).toFixed(1)+'km';
 function ensureMap(){if(map)return;
   mtile=document.createElement('div');mtile.className='tile map';
-  mtile.innerHTML='<div class="mp"></div><button class="zb" type="button" aria-label="拡大・縮小"></button><button class="fs" type="button">全員表示</button>';
+  mtile.innerHTML='<div class="mp"></div><button class="zb" type="button" aria-label="拡大・縮小"></button><button class="fs" type="button">全員表示</button><button class="pl" type="button">共有中 0人</button><div class="plist hide"></div>';
   $('#grid').prepend(mtile);
   map=L.map(mtile.firstChild).setView([35.68,139.76],15);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(map);
-  mtile.querySelector('.zb').onclick=()=>setFocus(mtile);mtile.querySelector('.fs').onclick=fitAll}
+  mtile.querySelector('.zb').onclick=()=>setFocus(mtile);mtile.querySelector('.fs').onclick=fitAll;
+  mtile.querySelector('.pl').onclick=()=>{mtile.querySelector('.plist').classList.toggle('hide');renderList()};
+  map.on('click',()=>mtile.querySelector('.plist').classList.add('hide'))}
 function setMark(id,name,d){ensureMap();let m=mk[id];const col=colorOf(id),ll=[d.lat,d.lng],r=d.acc&&d.acc<=300?d.acc:0;
   if(!m){m=mk[id]=L.circleMarker(ll,{radius:9,color:'#0f1519',weight:3,fillColor:col,fillOpacity:1}).addTo(map).bindTooltip('',{permanent:true,direction:'top',offset:[0,-8]});
     m._c=L.circle(ll,{radius:r,color:col,weight:1,opacity:.6,fillColor:col,fillOpacity:.12,interactive:false}).addTo(map);fitAll()}
   m.setLatLng(ll);m._c.setLatLng(ll).setRadius(r);m._nm=name;m._d=d;labels();locUI()}
-function labels(){const me=mk.me&&mk.me._d;Object.entries(mk).forEach(([id,m])=>m.setTooltipContent(m._nm+(me&&id!=='me'?' '+fmtD(dist(me,m._d)):'')+(m._d.acc?' ±'+Math.round(m._d.acc)+'m':'')))}
+function jumpTo(id){const m=mk[id];if(m)map.flyTo(m.getLatLng(),Math.max(map.getZoom(),17),{duration:.8})}
+function renderList(){if(!mtile)return;const box=mtile.querySelector('.plist'),ids=Object.keys(mk),me=mk.me&&mk.me._d;
+  mtile.querySelector('.pl').textContent='共有中 '+ids.length+'人';
+  if(box.classList.contains('hide'))return;
+  ids.sort((a,b)=>a==='me'?-1:b==='me'?1:(me?dist(me,mk[a]._d)-dist(me,mk[b]._d):0));
+  const key=ids.join('|');
+  if(box.dataset.k!==key){box.dataset.k=key;box.innerHTML='';
+    ids.forEach(id=>{const b=document.createElement('button');b.type='button';b.className='pr';b.dataset.id=id;b.innerHTML='<i></i><span></span><b></b>';
+      b.onclick=()=>{jumpTo(id);box.classList.add('hide')};box.append(b)})}
+  box.querySelectorAll('.pr').forEach(b=>{const id=b.dataset.id,m=mk[id];if(!m)return;
+    b.children[0].style.background=colorOf(id);b.children[1].textContent=m._nm;b.children[2].textContent=me&&id!=='me'?fmtD(dist(me,m._d)):'現在地'})}
+function labels(){renderList();const me=mk.me&&mk.me._d;Object.entries(mk).forEach(([id,m])=>m.setTooltipContent(m._nm+(me&&id!=='me'?' '+fmtD(dist(me,m._d)):'')+(m._d.acc?' ±'+Math.round(m._d.acc)+'m':'')))}
 function delMark(id){const m=mk[id];if(!m)return;m._c&&m._c.remove();m.remove();delete mk[id];
   if(!Object.keys(mk).length&&map){if(focusEl===mtile)focusEl=null;map.remove();mtile.remove();map=mtile=null;refreshFocus()}else labels();locUI()}
 function fitAll(){const pts=Object.values(mk).map(m=>m.getLatLng());if(!pts.length||!mtile||!mtile.offsetWidth)return;pts.length===1?map.setView(pts[0],17):map.fitBounds(L.latLngBounds(pts),{padding:[50,50],maxZoom:18})}
