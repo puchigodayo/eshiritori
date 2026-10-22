@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>PMS通信</title>
 <link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho+B1:wght@700&family=Zen+Kaku+Gothic+New:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
 <style>
 :root{--ink:#0f1519;--panel:#172027;--line:#2a3640;--sand:#d6c7a1;--txt:#e9e4d6;--dim:#8d9aa3;--ok:#6fc2b0;--bad:#e0553f;color-scheme:dark}
 *{box-sizing:border-box;margin:0}
@@ -51,6 +52,13 @@ nav{display:flex;flex-wrap:nowrap;gap:6px;justify-content:center;padding:8px 8px
 .zb,.fs{position:absolute;top:8px;z-index:2;min-height:0;height:28px;padding:0;font-size:12px;line-height:26px;background:#000a;border:1px solid #fff3;border-radius:6px;white-space:nowrap;text-align:center;color:var(--txt)}
 .zb{right:8px;width:52px}.fs{right:66px;width:64px}
 .zb::before{content:'拡大'}.tile.big .zb::before{content:'縮小'}
+.tile.map{grid-column:1/-1;aspect-ratio:16/9;max-height:50vh;justify-self:center;width:100%;cursor:default}
+.mp{position:absolute;inset:0;background:#0b1013;isolation:isolate}
+.mp .leaflet-tile-pane{filter:invert(1) hue-rotate(180deg) brightness(.85) contrast(.9)}
+.leaflet-tooltip{background:var(--ink);color:var(--txt);border:1px solid var(--sand);box-shadow:none;font:700 12px "Zen Kaku Gothic New",sans-serif}
+.leaflet-tooltip-top:before{border-top-color:var(--sand)}
+.nm.lc::before{content:"● ";color:var(--ok)}
+nav{gap:4px}
 #grid.focus{display:flex;flex-wrap:wrap;align-content:flex-start;overflow:auto}
 #grid.focus .tile.big{order:-1;flex:1 0 100%;width:100%;height:calc(100% - 100px);min-height:200px;aspect-ratio:auto;max-height:none}
 #grid.focus .big video{object-fit:contain}
@@ -91,6 +99,7 @@ dialog::backdrop{background:#000a}
     <button class="cb on" id="bMic" aria-label="マイクのオン・オフ"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 14a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v5a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.9V21h2v-3.1A7 7 0 0 0 19 11z"/><line class="sl" x1="4" y1="4" x2="20" y2="20"/></svg><span>マイク</span></button>
     <button class="cb x" id="bCam" aria-label="カメラのオン・オフ"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h12a1 1 0 0 1 1 1v3.500l5-3v9l-5-3V17a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1z"/><line class="sl" x1="4" y1="4" x2="20" y2="20"/></svg><span>カメラ</span></button>
     <button class="cb" id="bScr" aria-label="画面共有の開始・停止"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h18a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1h-7v2h3v2H7v-2h3v-2H3a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1zm1 2v9h16V6H4z"/></svg><span>画面共有</span></button>
+    <button class="cb x" id="bLoc" aria-label="現在地の共有をオン・オフ"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7zm0 9.500A2.500 2.500 0 1 1 12 6.500a2.500 2.500 0 0 1 0 5z"/><line class="sl" x1="4" y1="4" x2="20" y2="20"/></svg><span>位置共有</span></button>
     <button class="cb main" id="bLine" aria-label="LINEで友達を呼ぶ"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1h-9l-5 4v-4H4a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z"/></svg><span>LINE招待</span></button>
     <button class="cb" id="bSet" aria-label="設定"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10V5h2v2h4v2h-4v2h-2V9H4V7zm0 8h4v-2h2v2h10v2H10v2H8v-2H4v-2z"/></svg><span>設定</span></button>
     <button class="cb off" id="bLeave" aria-label="退出"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8c-3 0-5.800 1-8 2.800-.5.500-.5 1.300 0 1.800l1.500 1.500c.4.400 1 .5 1.500.2l2-1.200c.3-.2.5-.5.5-.9V10c1-.3 2-.5 3-.5s2 .2 3 .5v1.200c0 .4.2.7.5.9l2 1.200c.5.3 1.100.2 1.500-.2l1.500-1.500c.5-.5.5-1.300 0-1.800C17.800 9 15 8 12 8z"/></svg><span>退出</span></button>
@@ -114,6 +123,7 @@ dialog::backdrop{background:#000a}
 </dialog>
 
 <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 const $=s=>document.querySelector(s),PFX='betsuhan-v1-',AL='ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 const RES={720:[1280,720],1080:[1920,1080],1440:[2560,1440]};
@@ -121,7 +131,7 @@ const cfg={mic:'',cam:'',spk:'',res:1080,fps:30,br:4000,echo:true,ns:true,agc:fa
 let peer,myId,code,host=false,myName='',peers={},local={mic:null,cam:null,screen:null},muted=false,watch=[],actx;
 
 let focusEl=null;
-function refreshFocus(){const g=$('#grid');[...g.children].forEach(t=>t.classList.toggle('big',t===focusEl));g.classList.toggle('focus',!!focusEl)}
+function refreshFocus(){const g=$('#grid');[...g.children].forEach(t=>t.classList.toggle('big',t===focusEl));g.classList.toggle('focus',!!focusEl);setTimeout(()=>map&&map.invalidateSize(),60)}
 function setFocus(el){focusEl=focusEl===el?null:el;refreshFocus()}
 const toast=t=>{const e=document.createElement('div');e.id='toast';e.textContent=t;document.body.append(e);setTimeout(()=>e.remove(),2600)};
 const roomLink=()=>location.origin+location.pathname+'#'+code;
@@ -176,12 +186,13 @@ function reset(p){Object.values(p.out).concat(Object.values(p.inc)).forEach(c=>c
 function sendAllTo(id){['mic','cam','screen'].forEach(k=>local[k]&&callTo(id,k,local[k]))}
 function onData(c,inc){const id=c.peer;
   c.on('open',()=>{delete pending[id];const old=peers[id];if(inc&&old&&old.data&&old.data!==c)reset(old);
-    const p=ensure(id);p.data=c;p.t0=Date.now();everConn=true;c.send({t:'hello',name:myName,mute:muted});sendAllTo(id)});
+    const p=ensure(id);p.data=c;p.t0=Date.now();everConn=true;c.send({t:'hello',name:myName,mute:muted});if(mine)c.send({t:'loc',...mine});sendAllTo(id)});
   c.on('data',m=>{const p=ensure(id);
     if(m.t==='hello'){p.name=m.name;p.nm.textContent=m.name;p.av.textContent=[...m.name][0];p.nm.classList.toggle('mu',!!m.mute);
       if(host)c.send({t:'roster',ids:Object.keys(peers).filter(x=>x!==id&&x!=='self')})}
     if(m.t==='roster')m.ids.forEach(link);
     if(m.t==='st')p.nm.classList.toggle('mu',!!m.mute);
+    if(m.t==='loc'){if(m.off){p.nm.classList.remove('lc');delMark(id)}else{p.nm.classList.add('lc');setMark(id,p.name,m)}}
     if(m.t==='need'){Object.values(p.out).forEach(x=>x.close());p.out={};sendAllTo(id)}});
   const gone=()=>{delete pending[id];if(peers[id]&&peers[id].data===c)drop(id)};
   c.on('close',gone);c.on('error',gone);
@@ -219,7 +230,7 @@ function onCall(c){const kind=c.metadata.kind,p=ensure(c.peer);c.answer(undefine
     if(kind==='screen'){const t=mkTile(c.peer+':s',p.name+' の画面');t.el.classList.add('screen');t.av.remove();t.vid.hidden=false;t.vid.muted=false;t.vid.srcObject=s;p.scr=t.el;$('#grid').prepend(t.el);focusEl=t.el;refreshFocus()}});
   c.on('close',()=>{if(p.inc[kind]!==c)return;delete p.inc[kind];if(kind==='cam')p.vid.hidden=true;if(kind==='screen'&&p.scr){if(focusEl===p.scr)focusEl=null;p.scr.remove();p.scr=null;refreshFocus()}})}
 function drop(id){const p=peers[id];if(!p)return;Object.values(p.out).concat(Object.values(p.inc)).forEach(c=>c.close());
-  if(focusEl===p.el||focusEl===p.scr)focusEl=null;p.el.remove();p.scr&&p.scr.remove();refreshFocus();p.audio&&(p.audio.srcObject=null);delete peers[id]}
+  delMark(id);if(focusEl===p.el||focusEl===p.scr)focusEl=null;p.el.remove();p.scr&&p.scr.remove();refreshFocus();p.audio&&(p.audio.srcObject=null);delete peers[id]}
 function mkTile(id,name){const el=document.createElement('div');el.className='tile';
   el.innerHTML='<video autoplay playsinline muted hidden></video><span class="av"></span><span class="nm"></span><button class="zb" type="button" aria-label="拡大・縮小"></button><button class="fs" type="button">全画面</button>';
   const r={el,vid:el.children[0],av:el.children[1],nm:el.children[2]};r.nm.textContent=name;r.av.textContent=[...name][0]||'?';$('#grid').append(el);
@@ -252,6 +263,37 @@ $('#bLine').onclick=()=>{const t='【PMS通信】回線コード '+code+' に入
 $('#copy').onclick=()=>navigator.clipboard.writeText(roomLink()).then(()=>toast('リンクをコピーしました'));
 function leave(){leaving=true;clearTimeout(rt);Object.keys(peers).forEach(id=>id!=='self'&&drop(id));['mic','cam','screen'].forEach(stopKind);peer&&peer.destroy();location.hash='';location.reload()}
 $('#bLeave').onclick=leave;
+
+// 位置情報(参加者の同意のうえで共有。いつでも停止可能)
+let map,mtile,mk={},mine=null,watchId=null,lastSend=0;
+const COL=['#6fc2b0','#d6c7a1','#e0a458','#8fb8e8','#c58fe0','#e08fa8'];
+const colorOf=id=>id==='me'?'#ffffff':COL[[...id].reduce((a,c)=>a+c.charCodeAt(0),0)%COL.length];
+function dist(a,b){const R=6371e3,r=x=>x*Math.PI/180,dl=r(b.lat-a.lat),dg=r(b.lng-a.lng),h=Math.sin(dl/2)**2+Math.cos(r(a.lat))*Math.cos(r(b.lat))*Math.sin(dg/2)**2;return 2*R*Math.asin(Math.sqrt(h))}
+const fmtD=m=>m<1000?Math.round(m)+'m':(m/1000).toFixed(1)+'km';
+function ensureMap(){if(map)return;
+  mtile=document.createElement('div');mtile.className='tile map';
+  mtile.innerHTML='<div class="mp"></div><button class="zb" type="button" aria-label="拡大・縮小"></button><button class="fs" type="button">全員表示</button>';
+  $('#grid').prepend(mtile);
+  map=L.map(mtile.firstChild).setView([35.68,139.76],15);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(map);
+  mtile.querySelector('.zb').onclick=()=>setFocus(mtile);mtile.querySelector('.fs').onclick=fitAll}
+function setMark(id,name,d){ensureMap();let m=mk[id];
+  if(!m){m=mk[id]=L.circleMarker([d.lat,d.lng],{radius:9,color:'#0f1519',weight:3,fillColor:colorOf(id),fillOpacity:1}).addTo(map).bindTooltip('',{permanent:true,direction:'top',offset:[0,-8]});fitAll()}
+  m.setLatLng([d.lat,d.lng]);m._nm=name;m._d=d;labels()}
+function labels(){const me=mk.me&&mk.me._d;Object.entries(mk).forEach(([id,m])=>m.setTooltipContent(m._nm+(me&&id!=='me'?' '+fmtD(dist(me,m._d)):'')))}
+function delMark(id){const m=mk[id];if(!m)return;m.remove();delete mk[id];
+  if(!Object.keys(mk).length&&map){if(focusEl===mtile)focusEl=null;map.remove();mtile.remove();map=mtile=null;refreshFocus()}else labels()}
+function fitAll(){const pts=Object.values(mk).map(m=>m.getLatLng());if(!pts.length)return;pts.length===1?map.setView(pts[0],17):map.fitBounds(L.latLngBounds(pts),{padding:[50,50],maxZoom:18})}
+function stopLoc(){if(watchId!==null)navigator.geolocation.clearWatch(watchId);watchId=null;mine=null;broadcast({t:'loc',off:true});delMark('me');
+  const b=$('#bLoc');b.classList.remove('on');b.classList.add('x');peers.self.nm.classList.remove('lc')}
+$('#bLoc').onclick=()=>{
+  if(watchId!==null)return stopLoc();
+  if(!navigator.geolocation)return toast('この端末では位置情報を使えません');
+  if(!confirm('この回線の参加者全員に、あなたの現在地をリアルタイムで共有します。いつでも停止できます。よろしいですか?'))return;
+  watchId=navigator.geolocation.watchPosition(g=>{const c=g.coords;mine={lat:c.latitude,lng:c.longitude,acc:c.accuracy};
+    setMark('me',myName+'(自分)',mine);const n=Date.now();if(n-lastSend>1000){lastSend=n;broadcast({t:'loc',...mine})}},
+    er=>{toast(er.code===1?'位置情報の使用が許可されていません':'位置情報を取得できません');stopLoc()},{enableHighAccuracy:true,maximumAge:1000,timeout:20000});
+  const b=$('#bLoc');b.classList.add('on');b.classList.remove('x');peers.self.nm.classList.add('lc')};
 
 // 設定
 $('#bSet').onclick=async()=>{const d=await navigator.mediaDevices.enumerateDevices();
