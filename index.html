@@ -50,9 +50,9 @@ nav{display:flex;flex-wrap:nowrap;gap:6px;justify-content:center;padding:8px 8px
 .cb .sl{display:none;stroke:currentColor;stroke-width:2.5}
 .cb.x .sl{display:block}
 .cb.on{background:#6fc2b01f}
-.zb,.fs{position:absolute;top:8px;z-index:2;min-height:0;height:28px;padding:0;font-size:12px;line-height:26px;background:#000a;border:1px solid #fff3;border-radius:6px;white-space:nowrap;text-align:center;color:var(--txt)}
-.zb{right:8px;width:52px}.fs{right:66px;width:64px}
-.zb::before{content:'拡大'}.tile.big .zb::before{content:'縮小'}
+.zb,.fs,.mt{position:absolute;z-index:2;min-height:0;height:28px;padding:0;font-size:12px;line-height:26px;background:#000a;border:1px solid #fff3;border-radius:6px;white-space:nowrap;text-align:center;color:var(--txt)}
+.zb{top:8px;right:8px;width:64px}.fs{top:42px;right:8px;width:64px}.mt{top:76px;right:8px;width:64px}
+.zb::before{content:'ピン留め'}.tile.big .zb::before{content:'解除'}
 .tile.map{grid-column:1/-1;aspect-ratio:16/9;max-height:50vh;justify-self:center;width:100%;cursor:default}
 .mp{position:absolute;inset:0;background:#0b1013;isolation:isolate}
 .mp .leaflet-tile-pane{filter:invert(1) hue-rotate(180deg) brightness(.85) contrast(.9)}
@@ -73,7 +73,7 @@ nav{gap:4px}
 #locbar b{color:var(--dim);font-weight:400;font-size:20px;line-height:1}
 .tile.map:not(.big){display:none}
 .tile.map.big .zb::before{content:'通話に戻る'}
-.tile.map .zb{width:84px}.tile.map .fs{right:100px}
+.tile.map .zb{width:84px}.tile.map .fs{right:100px;top:8px}
 #room.mapmode .cb{height:44px}
 #room.mapmode .cb span{display:none}
 #room.mapmode .cb svg{width:20px;height:20px}
@@ -104,13 +104,25 @@ nav{gap:4px}
 .sr span{color:var(--dim);font-size:12px}
 #ver{position:fixed;top:calc(env(safe-area-inset-top) + 3px);left:10px;z-index:20;font-size:11px;line-height:1;color:var(--dim);pointer-events:none;letter-spacing:.04em}
 #room{padding-top:16px}
+#grid:not(.focus){display:flex;flex-wrap:wrap;justify-content:center;align-content:center;gap:10px}
+#grid:not(.focus) .tile{flex:0 0 var(--tw,300px);width:var(--tw,300px);height:var(--th,170px);aspect-ratio:auto;max-height:none}
+.tile.pg{display:none!important}
+.tile.self .mt,.tile.screen .mt{display:none!important}
+#pager{display:flex;justify-content:center;align-items:center;gap:12px;padding:4px}
+#pager button{width:44px;padding:0}
+@media (hover:hover){.tile .zb,.tile .fs,.tile .mt{opacity:0;transition:opacity .12s}.tile:hover .zb,.tile:hover .fs,.tile:hover .mt{opacity:1}}
+@media (hover:none){.tile .zb,.tile .fs,.tile .mt{display:none}.tile.ctl .zb,.tile.ctl .fs,.tile.ctl .mt{display:block}}
+.tile.map .zb,.tile.map .fs{display:block!important;opacity:1!important}
+#grid.focus.pc{flex-direction:column;flex-wrap:wrap;align-content:flex-start}
+#grid.focus.pc .tile.big{order:-1;flex:none;width:calc(100% - 222px);height:100%;max-height:none;min-height:0}
+#grid.focus.pc .tile:not(.big){flex:none;width:210px;height:118px}
 #grid.focus{display:flex;flex-wrap:wrap;align-content:flex-start;overflow:auto}
 #grid.focus .tile.big{order:-1;flex:1 0 100%;width:100%;height:calc(100% - 100px);min-height:200px;aspect-ratio:auto;max-height:none}
 #grid.focus .big video{object-fit:contain}
 #grid.focus .tile:not(.big){flex:0 0 150px;width:150px;height:90px;aspect-ratio:auto;max-height:none}
 #grid.focus .tile:not(.big) .av{font-size:28px}
 #grid.focus .tile:not(.big) .nm{font-size:11px;left:6px;bottom:5px;padding:1px 6px}
-#grid.focus .tile:not(.big) .zb,#grid.focus .tile:not(.big) .fs{display:none}
+#grid.focus .tile:not(.big) .zb,#grid.focus .tile:not(.big) .fs,#grid.focus .tile:not(.big) .mt{display:none}
 dialog{background:var(--panel);color:var(--txt);border:1px solid var(--line);border-radius:12px;padding:20px;width:min(440px,92vw);margin:auto}
 dialog::backdrop{background:#000a}
 .chk{display:flex;gap:10px;align-items:center;margin-top:10px;color:var(--txt)}.chk input{width:auto;min-height:0}
@@ -119,7 +131,7 @@ dialog::backdrop{background:#000a}
 </style>
 </head>
 <body>
-<div id="ver">Ver.26.10.3</div>
+<div id="ver">Ver.26.10.4</div>
 
 <section id="lobby">
   <h1><b>P</b>uchigo<b>M</b>assage<b>S</b>ervice</h1>
@@ -145,6 +157,7 @@ dialog::backdrop{background:#000a}
   </header>
   <button id="locbar" class="hide" type="button" aria-label="位置情報の地図を開く"><i></i><span>位置情報は共有されています</span><b>›</b></button>
   <main id="grid"></main>
+  <div id="pager" class="hide"><button id="pPrev" type="button" aria-label="前のページ">‹</button><span id="pNum">1/1</span><button id="pNext" type="button" aria-label="次のページ">›</button></div>
   <nav>
     <button class="cb on" id="bMic" aria-label="マイクのオン・オフ"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 14a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v5a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.9V21h2v-3.1A7 7 0 0 0 19 11z"/><line class="sl" x1="4" y1="4" x2="20" y2="20"/></svg><span>マイク</span></button>
     <button class="cb x" id="bCam" aria-label="カメラのオン・オフ"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h12a1 1 0 0 1 1 1v3.500l5-3v9l-5-3V17a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1z"/><line class="sl" x1="4" y1="4" x2="20" y2="20"/></svg><span>カメラ</span></button>
@@ -240,7 +253,7 @@ function renderSw(){['#sw1','#sw2'].forEach(id=>swatches($(id),(c,keep)=>{setMyC
 let peer,myId,code,host=false,myName='',peers={},local={mic:null,cam:null,screen:null,music:null},muted=false,watch=[],actx;
 
 let focusEl=null;
-function refreshFocus(){const g=$('#grid');[...g.children].forEach(t=>t.classList.toggle('big',t===focusEl));g.classList.toggle('focus',!!focusEl);$('#room').classList.toggle('mapmode',!!mtile&&focusEl===mtile);locUI();setTimeout(()=>{if(map){map.invalidateSize();if(focusEl===mtile)fitAll()}},80)}
+function refreshFocus(){const g=$('#grid');[...g.children].forEach(t=>t.classList.toggle('big',t===focusEl));g.classList.toggle('focus',!!focusEl);$('#room').classList.toggle('mapmode',!!mtile&&focusEl===mtile);locUI();layoutGrid();setTimeout(()=>{if(map){map.invalidateSize();if(focusEl===mtile)fitAll()}},80)}
 function setFocus(el){focusEl=focusEl===el?null:el;refreshFocus()}
 const toast=t=>{const e=document.createElement('div');e.id='toast';e.textContent=t;document.body.append(e);setTimeout(()=>e.remove(),2600)};
 const roomLink=()=>location.origin+location.pathname+'#'+code;
@@ -337,7 +350,7 @@ function tune(c,kind){try{c.peerConnection.getSenders().forEach(async s=>{if(!s.
   try{await s.setParameters(q)}catch(_){}})}catch(_){}}
 function onCall(c){const kind=c.metadata.kind,p=ensure(c.peer);c.answer(undefined,{sdpTransform:opus(kind==='screen'||kind==='music',kind==='music')});p.inc[kind]=c;
   c.on('stream',s=>{try{c.peerConnection.getReceivers().forEach(r=>r.jitterBufferTarget=kind==='mic'?20:kind==='music'?150:0)}catch(_){}
-    if(kind==='mic'){const a=new Audio();a.autoplay=true;a.srcObject=s;if(cfg.spk&&a.setSinkId)a.setSinkId(cfg.spk).catch(()=>{});p.audio=a;watchStream(s,p.el)}
+    if(kind==='mic'){const a=new Audio();a.autoplay=true;a.srcObject=s;a.muted=!!p.lmuted;if(cfg.spk&&a.setSinkId)a.setSinkId(cfg.spk).catch(()=>{});p.audio=a;watchStream(s,p.el)}
     if(kind==='cam'){p.vid.srcObject=s;p.vid.hidden=false}
     if(kind==='music'){const a=new Audio();a.autoplay=true;a.srcObject=s;if(cfg.spk&&a.setSinkId)a.setSinkId(cfg.spk).catch(()=>{});p.music=a}
     if(kind==='screen'){const t=mkTile(c.peer+':s',p.name+' の画面');t.el.classList.add('screen');p.color&&setTileColor(t.el,p.color);t.av.remove();t.vid.hidden=false;t.vid.muted=false;t.vid.srcObject=s;p.scr=t.el;$('#grid').prepend(t.el);focusEl=t.el;refreshFocus()}});
@@ -345,11 +358,12 @@ function onCall(c){const kind=c.metadata.kind,p=ensure(c.peer);c.answer(undefine
 function drop(id){const p=peers[id];if(!p)return;Object.values(p.out).concat(Object.values(p.inc)).forEach(c=>c.close());
   delMark(id);if(focusEl===p.el||focusEl===p.scr)focusEl=null;p.el.remove();p.scr&&p.scr.remove();refreshFocus();p.audio&&(p.audio.srcObject=null);delete peers[id]}
 function mkTile(id,name){const el=document.createElement('div');el.className='tile';
-  el.innerHTML='<video autoplay playsinline muted hidden></video><span class="av"></span><span class="nm"></span><button class="zb" type="button" aria-label="拡大・縮小"></button><button class="fs" type="button">全画面</button><button class="fl" type="button">カメラ切替</button>';
+  el.innerHTML='<video autoplay playsinline muted hidden></video><span class="av"></span><span class="nm"></span><button class="zb" type="button" aria-label="拡大・縮小"></button><button class="fs" type="button">全画面</button><button class="mt" type="button">ミュート</button><button class="fl" type="button">カメラ切替</button>';
   const r={el,vid:el.children[0],av:el.children[1],nm:el.children[2]};r.nm.textContent=name;r.av.textContent=[...name][0]||'?';$('#grid').append(el);
   const full=()=>{el.requestFullscreen?el.requestFullscreen():r.vid.webkitEnterFullscreen&&r.vid.webkitEnterFullscreen()};
-  el.onclick=()=>setFocus(el);el.ondblclick=full;
-  el.querySelector('.zb').onclick=e=>{e.stopPropagation();setFocus(el)};el.querySelector('.fs').onclick=e=>{e.stopPropagation();full()};el.querySelector('.fl').onclick=e=>{e.stopPropagation();flipCam()};
+  el.onclick=()=>{if(matchMedia('(hover:none)').matches){el.classList.toggle('ctl');clearTimeout(el._t);el._t=setTimeout(()=>el.classList.remove('ctl'),4000)}else setFocus(el)};el.ondblclick=full;
+  el.querySelector('.zb').onclick=e=>{e.stopPropagation();setFocus(el)};el.querySelector('.fs').onclick=e=>{e.stopPropagation();full()};el.querySelector('.mt').onclick=e=>{e.stopPropagation();const p=el._p;if(!p)return;p.lmuted=!p.lmuted;if(p.audio)p.audio.muted=p.lmuted;e.currentTarget.classList.toggle('off',p.lmuted)};
+  el.querySelector('.fl').onclick=e=>{e.stopPropagation();flipCam()};
   if(id==='self')peers.self=Object.assign(peers.self||{},r);return r}
 function watchStream(s,el){actx=actx||new AudioContext({sampleRate:48000});const an=actx.createAnalyser();an.fftSize=512;actx.createMediaStreamSource(s).connect(an);watch.push({an,el,buf:new Uint8Array(an.fftSize)})}
 setInterval(()=>watch.forEach(w=>{w.an.getByteTimeDomainData(w.buf);let m=0;for(const v of w.buf)m=Math.max(m,Math.abs(v-128));if(m>14)w.t=Date.now();const sp=Date.now()-(w.t||0)<350&&!(w.el.classList.contains('self')&&muted);w.el.classList.toggle('speaking',sp);const q=w.el._p;if(q&&q.scr)q.scr.classList.toggle('speaking',sp)}),100);
@@ -556,7 +570,7 @@ $('#bFileOff').onclick=()=>{aFile.pause();aFile.removeAttribute('src');aFile.loa
   stopKind('music');aDest&&aSrc.disconnect(aDest);aDest=null;broadcast({t:'music',off:true});$('#bTitle').textContent=''};
 aFile.onplay=()=>{if(ready()&&yt.getPlayerState()===1){if(bgmOwner)sendBgm('stop');bgmOwner=false;yt.pauseVideo()}};
 setInterval(()=>{const d=$('#bDuck').checked&&document.querySelector('.tile.speaking:not(.self)'),v=+$('#bVol').value/100*(d?.35:1),mute=!$('#bListen').checked;
-  Object.values(peers).forEach(p=>{if(p.music){p.music.volume=Math.min(1,v);p.music.muted=mute}});if(aGain)aGain.gain.value=v},300);
+  Object.values(peers).forEach(p=>{if(p.music){p.music.volume=Math.min(1,v);p.music.muted=mute||!!p.lmuted}});if(aGain)aGain.gain.value=v},300);
 
 // BGMが流れている間はマイクのノイズ除去を切る(スピーカーから漏れたBGMが加工されて相手に届くのを防ぐ)
 let lastAct=null,lastTr=null,autoMuted=false;
@@ -590,6 +604,26 @@ setInterval(async()=>{let rtt=null,loss=0;
   const h=$('#hud');if(rtt===null){h.innerHTML='<i></i>相手を待っています';return}
   const bad=rtt>150||loss>5;h.innerHTML=`<i style="background:${bad?'var(--bad)':'var(--ok)'}"></i>遅延 ${rtt.toFixed(0)}ms ・ 損失 ${loss.toFixed(1)}%`},2000);
 
+// 通話画面のグリッド:等面積・c×r≧N。PCは横長(列優先・16:9)、スマホ縦持ちは縦長(行優先・最大8人)、端数は中央寄せ
+let page=0;
+function layoutGrid(){const g=$('#grid');if(!g||!g.clientWidth)return;
+  const cs=getComputedStyle(g),pad=(a,b)=>parseFloat(cs[a])+parseFloat(cs[b]),W=g.clientWidth-pad('paddingLeft','paddingRight'),H=g.clientHeight-pad('paddingTop','paddingBottom'),gap=10;
+  const portrait=H>W&&W<820;g.classList.toggle('pc',!portrait);
+  const tiles=[...g.children].filter(t=>!t.classList.contains('map')),pg=$('#pager');
+  tiles.forEach(t=>t.classList.remove('pg'));
+  if(focusEl){pg.classList.add('hide');return}
+  const per=portrait?8:25,pages=Math.max(1,Math.ceil(tiles.length/per));page=Math.max(0,Math.min(page,pages-1));
+  const vis=tiles.slice(page*per,page*per+per);
+  tiles.forEach(t=>{const hid=!vis.includes(t);t.classList.toggle('pg',hid);const v=t.querySelector('video');if(v&&v.srcObject){hid?v.pause():v.play().catch(()=>{})}});
+  pg.classList.toggle('hide',pages<2);$('#pNum').textContent=(page+1)+'/'+pages;
+  const N=Math.max(vis.length,1),c=portrait?(N<=2?1:2):Math.ceil(Math.sqrt(N)),r=Math.ceil(N/c);
+  const w=(W-(c-1)*gap)/c,h=(H-(r-1)*gap)/r;let tw=w,th=h;if(!portrait){tw=Math.min(w,h*16/9);th=tw*9/16}
+  g.style.setProperty('--tw',Math.floor(tw)+'px');g.style.setProperty('--th',Math.floor(th)+'px')}
+const turn=d=>{page+=d;layoutGrid()};
+$('#pPrev').onclick=()=>turn(-1);$('#pNext').onclick=()=>turn(1);
+let sx=null;$('#grid').addEventListener('touchstart',e=>{sx=e.touches[0].clientX},{passive:true});
+$('#grid').addEventListener('touchend',e=>{if(sx===null)return;const dx=e.changedTouches[0].clientX-sx;sx=null;if(Math.abs(dx)>70&&!focusEl)turn(dx<0?1:-1)},{passive:true});
+new ResizeObserver(layoutGrid).observe($('#grid'));new MutationObserver(layoutGrid).observe($('#grid'),{childList:true});
 paintTheme(myColor);renderSw();
 $('#create').onclick=()=>enter(true);$('#join').onclick=()=>enter(false);
 if(location.hash.length>1){$('#code').value=location.hash.slice(1).toUpperCase();$('#name').focus()}
