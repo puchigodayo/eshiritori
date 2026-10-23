@@ -132,7 +132,7 @@ dialog::backdrop{background:#000a}
 </style>
 </head>
 <body>
-<div id="ver">Ver.26.10.5</div>
+<div id="ver">Ver.26.10.6</div>
 
 <section id="lobby">
   <h1><b>P</b>uchigo<b>M</b>assage<b>S</b>ervice</h1>
@@ -656,7 +656,7 @@ function layoutGrid(){const g=$('#grid');if(!g||!g.clientWidth)return;
   const portrait=H>W&&W<820;g.classList.toggle('pc',!portrait);
   const tiles=[...g.children].filter(t=>!t.classList.contains('map')),pg=$('#pager');
   tiles.forEach(t=>t.classList.remove('pg'));
-  if(focusEl){pg.classList.add('hide');const n=Math.max(tiles.length-1,1);g.style.setProperty('--sw',Math.floor(n<=3?(W-(n-1)*gap)/n:(W-2*gap)/3)+'px');return}
+  if(focusEl){pg.classList.add('hide');const n=Math.max(tiles.filter(t=>t!==focusEl).length,1);g.style.setProperty('--sw',Math.floor(n<=3?(W-(n-1)*gap)/n:(W-2*gap)/3)+'px');return}
   const per=portrait?8:25,pages=Math.max(1,Math.ceil(tiles.length/per));page=Math.max(0,Math.min(page,pages-1));
   const vis=tiles.slice(page*per,page*per+per);
   tiles.forEach(t=>{const hid=!vis.includes(t);t.classList.toggle('pg',hid);const v=t.querySelector('video');if(v&&v.srcObject){hid?v.pause():v.play().catch(()=>{})}});
