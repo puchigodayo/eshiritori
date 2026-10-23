@@ -113,6 +113,7 @@ nav{gap:4px}
 @media (hover:hover){.tile .zb,.tile .fs,.tile .mt{opacity:0;transition:opacity .12s}.tile:hover .zb,.tile:hover .fs,.tile:hover .mt{opacity:1}}
 @media (hover:none){.tile .zb,.tile .fs,.tile .mt{display:none}.tile.ctl .zb,.tile.ctl .fs,.tile.ctl .mt{display:block}}
 .tile.map .zb,.tile.map .fs{display:block!important;opacity:1!important}
+#grid.focus:not(.pc) .tile:not(.big){flex:0 0 var(--sw,150px);width:var(--sw,150px)}
 #grid.focus.pc{flex-direction:column;flex-wrap:wrap;align-content:flex-start}
 #grid.focus.pc .tile.big{order:-1;flex:none;width:calc(100% - 222px);height:100%;max-height:none;min-height:0}
 #grid.focus.pc .tile:not(.big){flex:none;width:210px;height:118px}
@@ -131,7 +132,7 @@ dialog::backdrop{background:#000a}
 </style>
 </head>
 <body>
-<div id="ver">Ver.26.10.4</div>
+<div id="ver">Ver.26.10.5</div>
 
 <section id="lobby">
   <h1><b>P</b>uchigo<b>M</b>assage<b>S</b>ervice</h1>
@@ -190,7 +191,7 @@ dialog::backdrop{background:#000a}
   </section>
 
   <section id="tFl" class="hide">
-    <label for="bFile" style="margin-top:0">自分の音声ファイル(全員に聞こえます)</label>
+    <label for="bFile" style="margin-top:0">自分の音声ファイル(全員の端末に転送して同時に再生)</label>
     <input type="file" id="bFile" accept="audio/*,.mp3,.m4a,.wav,.flac,.ogg,.aac">
     <audio id="aFile" controls class="hide" style="width:100%;margin-top:10px"></audio>
     <button id="bFileOff" class="hide" type="button" style="margin-top:10px;width:100%">ファイルを外す</button>
@@ -205,7 +206,7 @@ dialog::backdrop{background:#000a}
       <label class="chk"><input type="checkbox" id="bLoop" checked>くり返す</label>
       <label class="chk"><input type="checkbox" id="bDuck">誰かが話している間は音量を下げる</label>
       <label class="chk"><input type="checkbox" id="bListen" checked>他の人が流すBGMも聴く</label>
-      <label class="chk"><input type="checkbox" id="bSync" checked>YouTubeを通話中の全員に同期して流す(オフなら自分の端末だけでそのまま再生)</label>
+      <label class="chk"><input type="checkbox" id="bSync" checked>BGM(YouTube・音声ファイル)を通話中の全員に同期して流す(オフなら自分の端末だけ)</label>
       <label class="chk"><input type="checkbox" id="bMute">BGM中は自分のマイクを自動でミュート(エコー確認用)</label>
       <label class="chk"><input type="checkbox" id="bNs" checked>BGM中はエコー除去・ノイズ除去を自動でオフ(スピーカーだとエコーが出ます。イヤホン推奨)</label>
       <p style="color:var(--dim);font-size:13px;margin-top:10px">再生すると通話中の全員の端末で同時に流れます(音量は各自で調整できます)。スピーカーだとマイクに入るので、イヤホンがおすすめです。</p>
@@ -308,14 +309,14 @@ function reset(p){Object.values(p.out).concat(Object.values(p.inc)).forEach(c=>c
 function sendAllTo(id){['mic','cam','screen','music'].forEach(k=>local[k]&&callTo(id,k,local[k]))}
 function onData(c,inc){const id=c.peer;
   c.on('open',()=>{delete pending[id];const old=peers[id];if(inc&&old&&old.data&&old.data!==c)reset(old);
-    const p=ensure(id);p.data=c;p.t0=Date.now();everConn=true;c.send({t:'hello',name:myName,mute:muted,color:myColor});if(mine)c.send({t:'loc',...mine});bgmHello(c);if(local.music)c.send({t:'music',name:musicName});sendAllTo(id)});
+    const p=ensure(id);p.data=c;p.t0=Date.now();everConn=true;c.send({t:'hello',name:myName,mute:muted,color:myColor});if(mine)c.send({t:'loc',...mine});bgmHello(c);offer(id);sendAllTo(id)});
   c.on('data',m=>{const p=ensure(id);
     if(m.t==='hello'){p.name=m.name;p.nm.textContent=m.name;p.av.textContent=[...m.name][0];p.nm.classList.toggle('mu',!!m.mute);
       if(host)c.send({t:'roster',ids:Object.keys(peers).filter(x=>x!==id&&x!=='self')})}
     if(m.t==='roster')m.ids.forEach(link);
     if(m.t==='st')p.nm.classList.toggle('mu',!!m.mute);
     if(m.t==='bgm')onBgm(m,p.name);
-    if(m.t==='music')$('#bTitle').textContent=m.off?'':'♪ '+p.name+' の音楽:'+m.name;
+    if(m.t&&m.t.length>3&&m.t[0]==='f')onFile(m,id,p);
     if(m.color&&(m.t==='hello'||m.t==='color')){p.color=m.color;setTileColor(p.el,m.color);if(p.scr)setTileColor(p.scr,m.color);recolorMarks()}
     if(m.t==='loc'){if(m.off){p.nm.classList.remove('lc');delMark(id)}else{p.nm.classList.add('lc');setMark(id,p.name,m)}}
     if(m.t==='need'){Object.values(p.out).forEach(x=>x.close());p.out={};sendAllTo(id)}});
@@ -488,12 +489,12 @@ function onBgm(m,name){if(!$('#bListen').checked)return;
   if(m.a==='sync'){if(!same||!ready())return;const st=yt.getPlayerState();
     if(m.list&&yt.getPlaylistIndex&&yt.getPlaylistIndex()!==m.idx){yt.playVideoAt(m.idx);return}
     if(st===1&&Math.abs(yt.getCurrentTime()-m.pos)>2.5)yt.seekTo(m.pos,true);return}
-  bgmOwner=false;$('#bTitle').textContent='♪ '+name+' のBGM';
+  rAud&&rAud.pause();rWant=null;bgmOwner=false;$('#bTitle').textContent='♪ '+name+' のBGM';
   if(same&&ready()){yt.seekTo(m.pos+.3,true);yt.playVideo();return}
   ytLoad({v:m.v,list:m.list,pos:m.pos+.4,idx:m.idx,loop:m.loop});
   setTimeout(()=>{if(!ready()||yt.getPlayerState()!==1)toast('BGMが始まらないときは ♪ BGM を開いて「再生」を押してください')},3500)}
 $('#bBgm').onclick=()=>$('#dBgm').showModal();$('#bClose').onclick=()=>$('#dBgm').close();
-$('#bPlay').onclick=async()=>{aFile.pause();const u=$('#bUrl').value.trim();
+$('#bPlay').onclick=async()=>{aFile.pause();rAud&&rAud.pause();const u=$('#bUrl').value.trim();
   if(ready()&&u===lastUrl&&yt.getPlayerState()!==-1){yt.playVideo();bgmOwner=true;sendBgm('play');return}
   if(!u&&cur&&ready()){yt.playVideo();return}
   const{v,list}=parseYT(u);if(!v&&!list)return toast('YouTubeのURLを入力してください');
@@ -502,21 +503,19 @@ $('#bPlay').onclick=async()=>{aFile.pause();const u=$('#bUrl').value.trim();
 $('#bPause').onclick=()=>{if(!ready())return;yt.pauseVideo();if(bgmOwner)sendBgm('pause')};
 $('#bStop').onclick=()=>{if(bgmOwner)sendBgm('stop');bgmOwner=false;stopLocal()};
 $('#bLoop').onchange=()=>{aFile.loop=$('#bLoop').checked;ready()&&yt.setLoop&&yt.setLoop($('#bLoop').checked)};
-$('#bSync').onchange=e=>{if(e.target.checked&&bgmOwner&&ready())sendBgm('play')};
+$('#bSync').onchange=e=>{if(!e.target.checked)return;if(bgmOwner&&ready())sendBgm('play');if(curFile)Object.keys(peers).forEach(id=>id!=='self'&&offer(id))};
 $('#bListen').onchange=e=>{if(!e.target.checked&&!bgmOwner)stopLocal()};
 setInterval(()=>{if(bgmOwner&&ready()&&yt.getPlayerState()===1)sendBgm('sync')},8000);
 setInterval(()=>{if(!ready())return;try{const d=$('#bDuck').checked&&document.querySelector('.tile.speaking:not(.self)'),v=+$('#bVol').value*(d?.35:1);if(v!==lastV){lastV=v;yt.setVolume(v)}}catch(_){}},300);
 
 // 自分の音声ファイルを通話で全員に送る(WebRTCで高音質ステレオ送信)
-let aSrc=null,aGain=null,aDest=null,musicName='';
+let aSrc=null,aGain=null,curFile=null,fOwner=false;
 const aFile=$('#aFile');
 function loadMusic(blob,name){actx=actx||new AudioContext({sampleRate:48000});actx.resume();
   if(aFile.src)URL.revokeObjectURL(aFile.src);
   aFile.src=URL.createObjectURL(blob);aFile.loop=$('#bLoop').checked;aFile.classList.remove('hide');$('#bFileOff').classList.remove('hide');
   if(!aSrc){aSrc=actx.createMediaElementSource(aFile);aGain=actx.createGain();aGain.gain.value=+$('#bVol').value/100;aSrc.connect(aGain);aGain.connect(actx.destination)}
-  stopKind('music');aDest&&aSrc.disconnect(aDest);
-  aDest=actx.createMediaStreamDestination();aDest.stream.getAudioTracks()[0].contentHint='music';aSrc.connect(aDest);local.music=aDest.stream;sendKind('music',local.music);
-  musicName=name;broadcast({t:'music',name});$('#bTitle').textContent='♪ '+name;aFile.play().catch(()=>{})}
+  shareFile(blob,name);$('#bTitle').textContent='♪ '+name;aFile.play().catch(()=>{})}
 const baseName=n=>n.replace(/\.[^.]+$/,'');
 $('#bFile').onchange=async e=>{const f=e.target.files[0];if(!f)return;loadMusic(f,baseName(f.name));await saveHist(f);e.target.value=''};
 // 履歴(10個)とお気に入り(5つ)はこのブラウザ内(IndexedDB)に保存
@@ -566,16 +565,62 @@ async function ySearch(){const q=$('#bUrl').value.trim();if(!q)return toast('検
   if(!items||!items.length){box.innerHTML='<p style="color:var(--dim);margin-top:8px">検索できませんでした。「YouTube検索の設定」にAPIキーを入れると安定します。</p>';return}
   showResults(items)}
 $('#bSearch').onclick=ySearch;$('#bUrl').onkeydown=e=>{if(e.key==='Enter')ySearch()};
+// 音声ファイルは通話(WebRTC音声)に混ぜず、ファイルそのものを各端末へ転送し、各端末で普通のメディアとして再生する
+// (WebRTC音声はAndroidで「通話」扱いになり、通話用の処理で音質が落ちるため)
+const fcache=new Map(),recv={};let rAud=null,rId=null,rWant=null;
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const fcast=m=>{if(curFile&&$('#bSync').checked)broadcast(m)};
+const fState=t=>({t,id:curFile.id,pos:aFile.currentTime,loop:aFile.loop});
+function shareFile(blob,name){curFile={id:name+'|'+blob.size,name,blob,size:blob.size,type:blob.type||'audio/mpeg'};fOwner=true;
+  Object.keys(peers).forEach(id=>id!=='self'&&offer(id))}
+function offer(pid){const p=peers[pid];if(!curFile||!$('#bSync').checked||!p||!p.data||!p.data.open)return;
+  p.data.send({t:'foffer',id:curFile.id,name:curFile.name,size:curFile.size,type:curFile.type})}
+async function pushFile(pid,id){const p=peers[pid];if(!p||!curFile||curFile.id!==id)return;
+  const buf=curFile.buf||(curFile.buf=await curFile.blob.arrayBuffer()),CH=48*1024,n=Math.ceil(buf.byteLength/CH);
+  for(let i=0;i<n;i++){const c=p.data;if(!c||!c.open||!curFile||curFile.id!==id)return;
+    while(c.dataChannel&&c.dataChannel.bufferedAmount>2e6)await sleep(40);
+    c.send({t:'fchunk',id,i,n,d:buf.slice(i*CH,(i+1)*CH)})}
+  if(curFile&&curFile.id===id&&!aFile.paused&&p.data&&p.data.open)p.data.send(fState('fplay'))}
+function startRecv(){const w=rWant;if(!w||!w.playing||!fcache.has(w.id))return;
+  const f=fcache.get(w.id),pos=w.pos+(Date.now()-w.ts)/1000;
+  if(!rAud){rAud=new Audio();rAud.preload='auto'}
+  if(rId!==w.id){if(rAud.src)URL.revokeObjectURL(rAud.src);rAud.src=URL.createObjectURL(f.blob);rId=w.id}
+  rAud.loop=!!w.loop;
+  const go=()=>{try{rAud.currentTime=rAud.loop&&rAud.duration?pos%rAud.duration:pos}catch(_){}rAud.play().catch(()=>toast('BGMが始まらないときは ♪ BGM を開いて「再生」を押してください'))};
+  rAud.readyState>=1?go():rAud.addEventListener('loadedmetadata',go,{once:true});
+  $('#bTitle').textContent='♪ '+w.who+' の音楽:'+f.name}
+function onFile(m,pid,p){
+  if(m.t==='fneed'){pushFile(pid,m.id);return}
+  if(m.t==='fhave'){if(curFile&&curFile.id===m.id&&!aFile.paused&&p.data&&p.data.open)p.data.send(fState('fplay'));return}
+  if(!$('#bListen').checked)return;
+  if(m.t==='foffer'){
+    if(fcache.has(m.id)){p.data.send({t:'fhave',id:m.id});return}
+    recv[pid]={id:m.id,name:m.name,type:m.type,chunks:[],got:0,who:p.name};
+    $('#bTitle').textContent='♪ '+p.name+' の音楽を受信中…';p.data.send({t:'fneed',id:m.id});return}
+  if(m.t==='fchunk'){const r=recv[pid];if(!r||r.id!==m.id)return;r.chunks[m.i]=m.d;r.got++;
+    if(r.got<m.n){if(r.got%20===0)$('#bTitle').textContent='♪ '+r.who+' の音楽を受信中 '+Math.round(r.got/m.n*100)+'%';return}
+    fcache.set(r.id,{blob:new Blob(r.chunks,{type:r.type}),name:r.name});if(fcache.size>3)fcache.delete(fcache.keys().next().value);
+    delete recv[pid];startRecv();return}
+  if(m.t==='fplay'||m.t==='fsync'){const same=rWant&&rWant.id===m.id;
+    rWant={id:m.id,pos:m.pos,ts:Date.now(),playing:true,loop:m.loop,who:p.name};
+    if(m.t==='fplay'){if(ready())yt.pauseVideo();bgmOwner=false;startRecv();return}
+    if(same&&rAud&&rId===m.id&&!rAud.paused&&Math.abs(rAud.currentTime-m.pos)>1.2){try{rAud.currentTime=m.pos}catch(_){}}return}
+  if(m.t==='fpause'){if(rWant)rWant.playing=false;rAud&&rAud.pause();return}
+  if(m.t==='fstop'){rWant=null;rAud&&rAud.pause();$('#bTitle').textContent=''}}
+setInterval(()=>{if(fOwner&&curFile&&!aFile.paused)fcast(fState('fsync'))},6000);
 $('#bFileOff').onclick=()=>{aFile.pause();aFile.removeAttribute('src');aFile.load();aFile.classList.add('hide');$('#bFileOff').classList.add('hide');
-  stopKind('music');aDest&&aSrc.disconnect(aDest);aDest=null;broadcast({t:'music',off:true});$('#bTitle').textContent=''};
-aFile.onplay=()=>{if(ready()&&yt.getPlayerState()===1){if(bgmOwner)sendBgm('stop');bgmOwner=false;yt.pauseVideo()}};
+  fcast({t:'fstop'});curFile=null;fOwner=false;$('#bTitle').textContent=''};
+aFile.onplay=()=>{if(ready()&&yt.getPlayerState()===1){if(bgmOwner)sendBgm('stop');bgmOwner=false;yt.pauseVideo()}rAud&&rAud.pause();if(curFile){fOwner=true;fcast(fState('fplay'))}};
+aFile.onpause=()=>{if(fOwner&&!aFile.ended)fcast({t:'fpause'})};
+aFile.onseeked=()=>{if(fOwner&&!aFile.paused)fcast(fState('fplay'))};
+aFile.onended=()=>{if(fOwner&&!aFile.loop)fcast({t:'fpause'})};
 setInterval(()=>{const d=$('#bDuck').checked&&document.querySelector('.tile.speaking:not(.self)'),v=+$('#bVol').value/100*(d?.35:1),mute=!$('#bListen').checked;
-  Object.values(peers).forEach(p=>{if(p.music){p.music.volume=Math.min(1,v);p.music.muted=mute||!!p.lmuted}});if(aGain)aGain.gain.value=v},300);
+  if(rAud){rAud.volume=Math.min(1,v);rAud.muted=mute}if(aGain)aGain.gain.value=v},300);
 
 // BGMが流れている間はマイクのノイズ除去を切る(スピーカーから漏れたBGMが加工されて相手に届くのを防ぐ)
 let lastAct=null,lastTr=null,autoMuted=false;
 setInterval(()=>{const t=local.mic&&local.mic.getAudioTracks()[0];if(!t)return;
-  const bgm=!!((ready()&&yt.getPlayerState()===1)||(aFile.src&&!aFile.paused)||Object.values(peers).some(p=>p.music&&!p.music.muted));
+  const bgm=!!((ready()&&yt.getPlayerState()===1)||(aFile.src&&!aFile.paused)||(rAud&&!rAud.paused&&!rAud.muted));
   const act=$('#bNs').checked&&bgm;
   if(act!==lastAct||t!==lastTr){lastAct=act;lastTr=t;t.applyConstraints({echoCancellation:act?false:cfg.echo,noiseSuppression:act?false:cfg.ns,autoGainControl:act?false:cfg.agc}).catch(()=>{})}
   const am=$('#bMute').checked&&bgm;
@@ -611,7 +656,7 @@ function layoutGrid(){const g=$('#grid');if(!g||!g.clientWidth)return;
   const portrait=H>W&&W<820;g.classList.toggle('pc',!portrait);
   const tiles=[...g.children].filter(t=>!t.classList.contains('map')),pg=$('#pager');
   tiles.forEach(t=>t.classList.remove('pg'));
-  if(focusEl){pg.classList.add('hide');return}
+  if(focusEl){pg.classList.add('hide');const n=Math.max(tiles.length-1,1);g.style.setProperty('--sw',Math.floor(n<=3?(W-(n-1)*gap)/n:(W-2*gap)/3)+'px');return}
   const per=portrait?8:25,pages=Math.max(1,Math.ceil(tiles.length/per));page=Math.max(0,Math.min(page,pages-1));
   const vis=tiles.slice(page*per,page*per+per);
   tiles.forEach(t=>{const hid=!vis.includes(t);t.classList.toggle('pg',hid);const v=t.querySelector('video');if(v&&v.srcObject){hid?v.pause():v.play().catch(()=>{})}});
