@@ -51,6 +51,7 @@ input{font:inherit;font-weight:700;width:100%;padding:12px;border-radius:10px;bo
 #chips{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
 .chip{position:relative;min-height:70px;display:flex;align-items:center;justify-content:center;font-family:Cinzel,"Zen Old Mincho",serif;font-size:28px;font-weight:900;text-align:center;line-height:1.1;padding:4px;word-break:break-all;color:#5a3a1c;background:linear-gradient(#f6e2b0,#dcbc7e);border:2px solid var(--line);border-radius:10px;box-shadow:0 3px 0 #9a7a4c;overflow:hidden}
 .chip::before{content:attr(data-i);position:absolute;top:3px;left:6px;font-size:11px;color:#8a6a46}
+.chip:not(.o)::before{display:none}
 .chip.m{background:linear-gradient(#5b789f,#34507c);color:var(--gold);border-color:#1c2f50;box-shadow:0 3px 0 #1c2f50}
 .chip.m::before{color:#b9c8e0}
 .chip.d{opacity:.4}
@@ -59,6 +60,9 @@ input{font:inherit;font-weight:700;width:100%;padding:12px;border-radius:10px;bo
 #ann{font-size:22px;text-align:center;line-height:1.6;color:#7a4a18;white-space:pre-line}
 #why{text-align:center;line-height:1.7;font-size:17px}
 #msg{min-height:20px;text-align:center}
+#clog{max-height:110px;overflow-y:auto;font-size:14px;line-height:1.6}
+#clog:empty{display:none}#clog p{word-break:break-all}#clog .me{color:#7a4a18}
+.row>.plain{white-space:nowrap}
 </style>
 </head>
 <body>
@@ -82,14 +86,15 @@ input{font:inherit;font-weight:700;width:100%;padding:12px;border-radius:10px;bo
 <div class="pn" id="mpset"></div>
 <p class="note">時間の設定は、部屋を作る人のものが使われます。</p>
 <div class="pn">
+<input id="rid" maxlength="12" autocapitalize="off" placeholder="作る部屋のID(空なら自動)" aria-label="作る部屋のID">
 <button class="wood" id="mk"><i>🏰</i><span>部屋を作る</span></button>
-<div class="row"><input id="jc" inputmode="numeric" maxlength="4" placeholder="4けたの部屋コード" aria-label="部屋コード"><button class="wood" id="jn"><span>参加</span></button></div>
+<div class="row"><input id="jc" maxlength="12" autocapitalize="off" placeholder="入る部屋のID" aria-label="入る部屋のID"><button class="wood" id="jn"><span>参加</span></button></div>
 </div>
 <button class="plain back">もどる</button>
 </section>
 
 <section id="wait" class="scr hide">
-<div class="pn"><p class="note">相手にこのコードを伝えてください</p><div class="code" id="wcode"></div><button class="plain" id="cp">招待リンクをコピー</button></div>
+<div class="pn"><p class="note">相手にこのIDを伝えてください</p><div class="code" id="wcode"></div><button class="plain" id="cp">招待リンクをコピー</button></div>
 <button class="plain" onclick="location.href=location.pathname">やめる</button>
 </section>
 
@@ -103,7 +108,7 @@ input{font:inherit;font-weight:700;width:100%;padding:12px;border-radius:10px;bo
 <section id="rules" class="scr hide">
 <div class="pn note">
 <p>まず1人が、好きな数字を好きな言葉に置き換えます。そのあと、1〜8を2人で交互に言っていきます。</p>
-<p>置き換えた数字は、代わりにその言葉を言います。置き換え済みの位置は青い●で表示されます。1周するごとに、また1人が置き換えてから次の周が始まります。</p>
+<p>置き換えた数字は、代わりにその言葉を言います。どの数字が置き換わっているかは表示されないので、自分で覚えておきます。1周するごとに、また1人が置き換えてから次の周が始まります。</p>
 <p>置き換える人と1を言う人は、周ごとに交代します。言い間違いと時間切れで負けです。置き換えた言葉は、言い始める前に少しだけ表示されます。</p></div>
 <button class="plain back">もどる</button>
 </section>
@@ -118,6 +123,7 @@ input{font:inherit;font-weight:700;width:100%;padding:12px;border-radius:10px;bo
 <div id="rep" class="pn hide"><p class="note">置き換える位置をタップして、言葉を入力</p>
 <input id="word" maxlength="20" autocomplete="off" placeholder="好きな言葉" aria-label="置き換える言葉"><button class="wood" id="rg"><span>置き換える</span></button></div>
 <div id="over" class="pn hide"><div id="why"></div><button class="wood" id="re"><span>もう一度あそぶ</span></button><button class="plain" onclick="location.href=location.pathname">タイトルへ</button></div>
+<div id="chat" class="pn"><div id="clog" aria-live="polite"></div><div class="row"><input id="cin" maxlength="60" autocomplete="off" placeholder="メッセージ" aria-label="メッセージ"><button class="plain" id="cs">送信</button></div></div>
 </section>
 <p class="note" id="msg" role="status"></p>
 </div>
@@ -141,7 +147,7 @@ $('#bm').onclick=()=>{show('mp');toast('')};
 $('#bg').onclick=()=>{drawSet();show('set')};
 $('#br').onclick=()=>show('rules');
 document.querySelectorAll('.back').forEach(b=>b.onclick=()=>{show('title');toast('')});
-const TIPS=['まず置き換えてから1〜8を言おう','置き換えた言葉は少しだけ見える','青い●は置き換え済みの位置','言い間違いと時間切れで負け'];
+const TIPS=['まず置き換えてから1〜8を言おう','置き換えた言葉は少しだけ見える','置き換わった位置は自分で覚えよう','言い間違いと時間切れで負け'];
 let ti=0;setInterval(()=>{ti=(ti+1)%TIPS.length;$('#tip').textContent='📜 '+TIPS[ti]},4000);
 $('#tip').textContent='📜 '+TIPS[0];
 
@@ -175,15 +181,16 @@ function render(s){
   if(over)st=s.winner===me?'あなたの勝ち!':'あなたの負け…';
   $('#st').textContent=st;
   [...chipsEl.children].forEach((c,i)=>{
-    c.className='chip'+(s.masked[i]?' m':'')+(play&&i<s.turn?' d':'')+(play&&i===s.turn?' c':'')+(myRep&&sel===i?' s':'');
-    c.textContent=over?s.items[i]:(s.masked[i]?'●':String(i+1));
+    c.className='chip'+(over?' o':'')+(play&&i<s.turn?' d':'')+(play&&i===s.turn?' c':'')+(myRep&&sel===i?' s':'');
+    c.textContent=over?s.items[i]:(i+1)+'番目';
   });
   $('#mem').classList.toggle('hide',!mem||!s.ann);
   if(mem&&s.ann)$('#ann').textContent=(s.ann.by===me?'あなた':foe)+'が '+(s.ann.slot+1)+'番目 を\n「'+s.ann.word+'」に置き換え';
   $('#inp').classList.toggle('hide',!mySpk);
   $('#rep').classList.toggle('hide',!myRep);
   $('#over').classList.toggle('hide',!over);
-  if(mySpk)$('#ans').focus();
+  $('#chat').classList.toggle('hide',solo);
+  if(mySpk&&document.activeElement!==$('#cin'))$('#ans').focus();
   if(over){
     $('#why').textContent=(s.winner===me?foe+'のミス:':'あなたのミス:')+s.why+'('+(s.round+1)+'周目)';
     const w=s.re&&s.re[me];$('#re').disabled=!!w;$('#re span').textContent=w?'相手を待っています…':'もう一度あそぶ';
@@ -215,13 +222,14 @@ function startTimer(sec){
 function fail(p,why){clearTimeout(timer);G.phase='over';G.winner=1-p;G.why=why;pub()}
 function pub(){
   const over=G.phase==='over';
-  const s={phase:G.phase,round:G.round,turn:G.turn,speaker:spk(),replacer:G.replacer,masked:G.masked.slice(),
+  const s={phase:G.phase,round:G.round,turn:G.turn,speaker:spk(),replacer:G.replacer,
     remain:over?0:Math.max(0,G.endAt-Date.now())/1000,dur:G.dur,ann:G.phase==='memorize'?G.ann:null,
     winner:G.winner,why:G.why,items:over?G.items:null,re:reFlag.slice()};
   if(conn&&conn.open)conn.send(s);
   render(s);cpu();
 }
 function onMsg(p,m){
+  if(m&&m.t==='chat'){const v=String(m.v).trim().slice(0,60);if(!v)return;const o={t:'chat',from:p,v};addChat(o);if(conn&&conn.open)conn.send(o);return}
   if(!G||!m)return;
   if(m.t==='ans'&&G.phase==='play'&&p===spk()){
     const v=String(m.v).slice(0,40);
@@ -257,6 +265,12 @@ function cpu(){
   }else if(G.phase==='over'&&!reFlag[1])onMsg(1,{t:'re'});
 }
 
+/* ---------- チャット ---------- */
+function addChat(m){const l=$('#clog'),p=document.createElement('p');p.className=m.from===me?'me':'';p.textContent=(m.from===me?'あなた':'相手')+': '+m.v;l.appendChild(p);while(l.children.length>30)l.firstChild.remove();l.scrollTop=l.scrollHeight}
+function sendChat(){const v=$('#cin').value.trim();if(!v)return;$('#cin').value='';send({t:'chat',v})}
+$('#cs').onclick=sendChat;
+$('#cin').onkeydown=e=>{if(e.key==='Enter'&&!e.isComposing)sendChat()};
+
 /* ---------- 入力 ---------- */
 function answer(){const v=$('#ans').value;if(!v.trim())return;$('#ans').value='';send({t:'ans',v})}
 $('#go').onclick=answer;
@@ -273,32 +287,32 @@ $('#re').onclick=()=>send({t:'re'});
 
 /* ---------- 通信 ---------- */
 function lost(){clearTimeout(timer);if(!S||S.phase!=='over')toast('相手との接続が切れました。ページを再読み込みしてください。')}
-function host(){
-  solo=false;me=0;const code=String(1000+Math.floor(Math.random()*9000));
+function host(id){
+  solo=false;me=0;const code=id||String(1000+Math.floor(Math.random()*9000));
   peer=new Peer('numrep-'+code);
   peer.on('open',()=>{
-    show('wait');$('#wcode').textContent=code;
+    show('wait');$('#wcode').textContent=code;$('#wcode').style.fontSize=code.length>6?'28px':'';
     $('#cp').onclick=()=>{const u=location.href.split('#')[0]+'#'+code;(navigator.clipboard?navigator.clipboard.writeText(u):Promise.reject()).then(()=>toast('リンクをコピーしました'),()=>toast(u))};
   });
   peer.on('connection',c=>{
     if(conn&&conn.open){c.close();return}
     conn=c;c.on('open',newGame);c.on('data',m=>onMsg(1,m));c.on('close',lost);
   });
-  peer.on('error',e=>{if(e.type==='unavailable-id'){peer.destroy();host()}else toast('通信エラー:'+e.type)});
+  peer.on('error',e=>{if(e.type==='unavailable-id'){peer.destroy();if(id){show('mp');toast('そのIDはすでに使われています')}else host()}else toast('通信エラー:'+e.type)});
 }
 function join(code){
-  solo=false;me=1;show('mp');toast('接続中…');
+  code=code.toLowerCase();solo=false;me=1;show('mp');toast('接続中…');
   peer=new Peer();
   peer.on('open',()=>{
     conn=peer.connect('numrep-'+code,{reliable:true});
-    conn.on('data',s=>{toast('');render(s)});
+    conn.on('data',s=>{if(s&&s.t==='chat'){addChat(s);return}toast('');render(s)});
     conn.on('close',lost);
   });
-  peer.on('error',e=>toast(e.type==='peer-unavailable'?'その部屋コードは見つかりません':'通信エラー:'+e.type));
+  peer.on('error',e=>toast(e.type==='peer-unavailable'?'その部屋IDは見つかりません':'通信エラー:'+e.type));
 }
-$('#mk').onclick=host;
-$('#jn').onclick=()=>{const c=$('#jc').value.trim();if(/^\d{4}$/.test(c))join(c);else toast('4けたの数字を入力してください')};
-if(/^#\d{4}$/.test(location.hash)){$('#jc').value=location.hash.slice(1);join(location.hash.slice(1))}
+$('#mk').onclick=()=>{const v=$('#rid').value.trim().toLowerCase();if(v&&!/^[a-z0-9_-]{2,12}$/.test(v)){toast('IDは英数字・-・_の2〜12文字で入力してください');return}host(v)};
+$('#jn').onclick=()=>{const c=$('#jc').value.trim();if(/^[A-Za-z0-9_-]{2,12}$/.test(c))join(c);else toast('IDは英数字・-・_の2〜12文字で入力してください')};
+if(/^#[A-Za-z0-9_-]{2,12}$/.test(location.hash)){$('#jc').value=location.hash.slice(1);join(location.hash.slice(1))}
 </script>
 </body>
 </html>
